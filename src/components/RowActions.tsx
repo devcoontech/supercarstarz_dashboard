@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
-import { api } from '../api';
-import { ConfirmDialog } from './forms';
+import { api } from '../lib/api';
+import { ConfirmDialog } from './ConfirmDialog';
 
 /** Edit and delete icons stacked vertically. Used on every list so they behave the same everywhere. */
 export function RowActions({ onEdit, onDelete, name, editLabel, deleteLabel }: { onEdit?: () => void; onDelete?: () => void; name: string; editLabel?: string; deleteLabel?: string }) {
@@ -24,10 +23,4 @@ export function DeleteDialog({ what, path, note, onClose, onDone }: { what: stri
       message={note ?? 'This cannot be undone. Existing bookings are not changed.'}
       onConfirm={async () => { await api(path, { method: 'DELETE' }); onDone(); }} />
   );
-}
-
-/** Small helper so a page can keep "which row is being deleted" in one place. */
-export function useDeleteTarget<T>() {
-  const [target, setTarget] = useState<T | null>(null);
-  return { target, ask: setTarget, close: () => setTarget(null) };
 }

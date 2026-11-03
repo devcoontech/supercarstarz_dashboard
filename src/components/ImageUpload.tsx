@@ -1,7 +1,9 @@
 import { useRef } from 'react';
 import { FiUploadCloud, FiX } from 'react-icons/fi';
-import { api } from '../api';
-import { ErrorBox, Field, useAction } from './forms';
+import { api } from '../lib/api';
+import { Field } from './forms';
+import { useAction } from '../lib/hooks';
+import { ErrorBox } from './feedback';
 
 /** Uploads one image to the API and reports back the stored URL. */
 export default function ImageUpload({ kind, value, onChange, label = 'Image' }: { kind: 'events' | 'offers'; value: string; onChange: (url: string) => void; label?: string }) {

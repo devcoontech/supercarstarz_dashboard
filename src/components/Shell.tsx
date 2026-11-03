@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { IconType } from 'react-icons';
 import { FiLogOut, FiMenu,FiMoon, FiSearch, FiSun } from 'react-icons/fi';
-import { initials } from './ui';
-import { useTheme } from '../theme';
+import { initials } from '../lib/format';
+import { useTheme } from '../lib/theme';
 
 export type NavItem = { key: string; label: string; icon: IconType; count?: number };
 

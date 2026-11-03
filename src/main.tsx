@@ -1,9 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { AuthProvider } from './auth';
-import { ToastProvider } from './components/ui';
-import { ThemeProvider } from './theme';
+import { AuthProvider } from './features/auth/auth';
+import { ToastProvider } from './components/toast';
+import { ThemeProvider } from './lib/theme';
 import './styles.css';
 
 createRoot(document.getElementById('root')!).render(

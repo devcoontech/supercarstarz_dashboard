@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { FiCheckCircle, FiX } from 'react-icons/fi';
+import { useEffect, type ReactNode } from 'react';
+import { FiX } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 
 export function Panel({
@@ -164,36 +164,3 @@ export function Switch({ checked, onChange, label, text, onText = 'Active', offT
     </label>
   );
 }
-
-export const initials = (name: string) =>
-  name
-    .split(' ')
-    .map((p) => p[0])
-    .join('')
-    .slice(0, 2);
-
-/* ---------- Toasts ---------- */
-
-const ToastCtx = createContext<(msg: string) => void>(() => {});
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [msg, setMsg] = useState<string | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-  const show = useCallback((m: string) => {
-    setMsg(m);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setMsg(null), 2600);
-  }, []);
-  return (
-    <ToastCtx.Provider value={show}>
-      {children}
-      {msg ? (
-        <div className="toast" role="status">
-          <FiCheckCircle size={18} /> {msg}
-        </div>
-      ) : null}
-    </ToastCtx.Provider>
-  );
-}
-
-export const useToast = () => useContext(ToastCtx);

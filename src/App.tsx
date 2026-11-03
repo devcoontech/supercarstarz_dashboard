@@ -1,25 +1,25 @@
 import { FiBarChart2, FiCalendar, FiClipboard, FiCreditCard, FiGrid, FiPackage, FiPercent, FiSettings, FiStar, FiTag, FiTruck, FiUser, FiUsers } from 'react-icons/fi';
-import { useApi } from './api';
-import { useAuth } from './auth';
-import { Loading } from './components/forms';
+import { useApi } from './lib/api';
+import { useAuth } from './features/auth/auth';
+import { Loading } from './components/feedback';
 import { Shell, type NavItem } from './components/Shell';
-import Addons from './pages/Addons';
-import { go, useRoute } from './nav';
-import BookingDetail from './pages/BookingDetail';
-import Bookings from './pages/Bookings';
-import CalendarPage from './pages/CalendarPage';
-import Customers from './pages/Customers';
-import Drivers from './pages/Drivers';
-import Events from './pages/Events';
-import Login from './pages/Login';
-import Offers from './pages/Offers';
-import Overview from './pages/Overview';
-import Payments from './pages/Payments';
-import Pricing from './pages/Pricing';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import VehicleEditor from './pages/VehicleEditor';
-import Vehicles from './pages/Vehicles';
+import Addons from './features/addons/Addons';
+import { go, useRoute } from './lib/nav';
+import BookingDetail from './features/bookings/BookingDetail';
+import Bookings from './features/bookings/Bookings';
+import CalendarPage from './features/calendar/CalendarPage';
+import Customers from './features/customers/Customers';
+import Drivers from './features/drivers/Drivers';
+import Events from './features/events/Events';
+import Login from './features/auth/Login';
+import Offers from './features/offers/Offers';
+import Overview from './features/overview/Overview';
+import Payments from './features/payments/Payments';
+import Pricing from './features/pricing/Pricing';
+import Reports from './features/reports/Reports';
+import Settings from './features/settings/Settings';
+import VehicleEditor from './features/vehicles/VehicleEditor';
+import Vehicles from './features/vehicles/Vehicles';
 
 const titles: Record<string, [string, string]> = {
   overview: ['Overview', 'How the business is doing'],
