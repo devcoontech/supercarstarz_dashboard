@@ -122,7 +122,7 @@ function EventForm({ ev, fleet, onClose, onSaved, onArchive }: { ev: EventRow | 
       <NumberField label="Minimum hours for this event" value={minHours} onChange={setMinHours} min={1} hint="Leave blank to use each car's own minimum" />
       <TextField label="Booking requirements" value={notes} onChange={setNotes} multiline hint="Shown to customers, e.g. venue access or photographer permits" />
       <SelectField label="How this event is priced" value={basis} onChange={setBasis} options={[{ value: 'hourly', label: 'By the hour (hourly rate, packages, extra hours)' }, { value: 'distance', label: 'By distance: pick-up and drop-off, priced per mile' }]}
-        hint={basis === 'distance' ? 'Customers enter a pick-up and a drop-off address; the distance is measured on the map. Set the per-mile rate under Pricing. Cars need a driver to offer this event.' : undefined} />
+        hint={basis === 'distance' ? 'Customers enter a pick-up and a drop-off address; the distance is measured on the map. Set the per-mile price on each car’s Pricing tab. Cars need a driver to offer this event.' : undefined} />
       <ToggleField label="Visible to customers" checked={published} onChange={setPublished} onText="Visible" offText="Hidden" />
       <div className="field">
         <label>Cars offered for this event</label>
@@ -130,7 +130,7 @@ function EventForm({ ev, fleet, onClose, onSaved, onArchive }: { ev: EventRow | 
           <CheckField key={v.id} label={`${v.make} ${v.model}`} checked={vehicleIds.includes(v.id)} onChange={(c) => setVehicleIds((p) => (c ? [...p, v.id] : p.filter((x) => x !== v.id)))} />
         ))}
       </div>
-      <span className="muted small">Event-specific prices are set under Pricing.</span>
+      <span className="muted small">Prices for an event are set on each car’s Pricing tab.</span>
       <ErrorBox error={error} />
     </Drawer>
   );

@@ -1,56 +1,149 @@
-import { MoneyField, NumberField, TextField, ToggleField } from '../../components/forms';
+import { useRef, type ReactNode } from 'react';
+import type { IconType } from 'react-icons';
+import { FiBell, FiBriefcase, FiImage, FiMapPin, FiPhone, FiSave, FiTrash2, FiUploadCloud } from 'react-icons/fi';
+import { api } from '../../lib/api';
+import { useAction } from '../../lib/hooks';
+import { SelectField, TextField } from '../../components/forms';
 import { ErrorBox } from '../../components/feedback';
-import { Panel } from '../../components/ui';
-import { useSettingsForm, type S } from './settingsShared';
+import { useSettingsForm, EMAIL_RE, type S } from './settingsShared';
+
+/** Settings > Business details: the company profile printed on receipts and used in customer emails. */
+
+const KEYS = [
+  'company.name', 'company.type', 'company.registrationNumber', 'company.vatNumber', 'company.description',
+  'company.email', 'company.supportEmail', 'company.supportPhone', 'company.altPhone', 'company.websiteUrl',
+  'company.addressLine1', 'company.addressLine2', 'company.city', 'company.region', 'company.postcode', 'company.country',
+  'notifications.ownerEmails', 'company.dashboardUrl',
+];
+const TYPES = ['Limited company', 'Sole trader', 'Partnership', 'Limited liability partnership', 'Other'];
+const COUNTRIES = ['United Kingdom', 'Ireland', 'France', 'Germany', 'Spain', 'Italy', 'Netherlands', 'United Arab Emirates', 'United States'];
+const URL_RE = /^https?:\/\/\S+$/i;
+
+function Card({ icon: Icon, title, hint, children }: { icon: IconType; title: string; hint: string; children: ReactNode }) {
+  return (
+    <section className="panel bz-card">
+      <header className="bz-card-head"><span className="bz-icon"><Icon size={18} /></span><div><h2>{title}</h2><div className="hint">{hint}</div></div></header>
+      {children}
+    </section>
+  );
+}
+
+const ADDRESS = ['company.addressLine1', 'company.addressLine2', 'company.city', 'company.region', 'company.postcode', 'company.country'];
+
+/** An address saved before it was split into parts starts out in the street line, so it is not lost. */
+const withAddressParts = (s: S): S => (s['company.address'] && !ADDRESS.slice(0, 5).some((k) => String(s[k] ?? '').trim()) ? { ...s, 'company.addressLine1': s['company.address'] } : s);
 
 export function Business({ s, onSaved }: { s: S; onSaved: () => void }) {
-  const f = useSettingsForm(s, onSaved);
-  const n = (k: string) => f.v[k] as number;
-  const keys = ['booking.openHour', 'booking.closeHour', 'booking.minLeadHours', 'booking.requireApproval', 'booking.holdMinutes', 'booking.pendingHoldHours', 'booking.maxOpenUnpaidOrders', 'booking.cancellationFreeHours', 'booking.cancellationLateRefundPercent', 'driver.bufferMinutes', 'booking.bufferMinutes', 'booking.maxAdvanceDays', 'booking.maxVehiclesPerOrder', 'booking.allowExtensions', 'delivery.showroomFeePence', 'company.name', 'company.supportEmail', 'company.supportPhone', 'company.address', 'company.vatNumber', 'company.websiteUrl', 'company.dashboardUrl', 'notifications.ownerEmails'];
-  const bad = n('booking.closeHour') <= n('booking.openHour') || n('booking.closeHour') > 24 || n('booking.cancellationLateRefundPercent') > 100 || n('booking.maxAdvanceDays') < 1 || n('booking.bufferMinutes') > 1440;
+  const f = useSettingsForm(withAddressParts(s), onSaved);
+  const str = (k: string) => (f.v[k] as string) ?? '';
+  const text = (k: string) => (v: string) => f.set(k, v);
+  const logo = useRef<HTMLInputElement>(null);
+  const logoAction = useAction();
+
+  // Same rules as the server, shown as you type.
+  const errors: Record<string, string> = {};
+  if (!str('company.name').trim()) errors['company.name'] = 'Enter the business name';
+  for (const k of ['company.email', 'company.supportEmail']) if (str(k).trim() && !EMAIL_RE.test(str(k).trim())) errors[k] = 'Enter a valid email address';
+  for (const k of ['company.websiteUrl', 'company.dashboardUrl']) if (str(k).trim() && !URL_RE.test(str(k).trim())) errors[k] = 'Start the address with https://';
+  if (str('notifications.ownerEmails').trim() && !str('notifications.ownerEmails').split(/[,;\s]+/).filter(Boolean).every((e) => EMAIL_RE.test(e))) errors['notifications.ownerEmails'] = 'Email addresses separated by commas';
+  const err = (k: string) => (f.changed.includes(k) || f.error ? errors[k] : undefined);
+  const invalid = Object.keys(errors).length > 0;
+  const dirty = KEYS.some((k) => f.changed.includes(k));
+  const printed = ADDRESS.map(str).map((x) => x.trim()).filter(Boolean).join(', ');
+  const logoUrl = str('company.logoUrl');
+
+  const uploadLogo = (file: File | undefined) => {
+    if (!file) return;
+    logoAction.run(async () => {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('The logo must be a JPEG, PNG or WebP image');
+      if (file.size > 8 * 1024 * 1024) throw new Error('The logo must be 8 MB or smaller');
+      const form = new FormData();
+      form.append('file', file);
+      await api('/settings/logo', { form });
+      onSaved();
+    }, logoUrl ? 'Logo replaced' : 'Logo uploaded');
+  };
+  // Address parts are saved together, so the printed address is always built from all of them.
+  const save = () => f.save(KEYS, undefined, ADDRESS.some((k) => f.changed.includes(k)) ? ADDRESS : []);
+  const SaveButton = () => (
+    <button className="btn gold" disabled={f.busy || !dirty || invalid} onClick={save}><FiSave /> {f.busy ? 'Saving…' : 'Save changes'}</button>
+  );
+
   return (
-    <>
-      <Panel title="Booking rules" hint={`Times are in ${s['booking.timezone']}.`}>
-        <div className="form-grid">
-          <NumberField label="First start hour" value={n('booking.openHour')} onChange={(v) => f.set('booking.openHour', v ?? 0)} min={0} max={23} />
-          <NumberField label="Everything must finish by (hour)" value={n('booking.closeHour')} onChange={(v) => f.set('booking.closeHour', v ?? 0)} min={1} max={24} error={n('booking.closeHour') <= n('booking.openHour') ? 'Must be after the first start hour' : undefined} />
-          <NumberField label="Minimum notice (hours)" value={n('booking.minLeadHours')} onChange={(v) => f.set('booking.minLeadHours', v ?? 0)} min={0} />
-          <NumberField label="Unpaid hold (minutes)" value={n('booking.holdMinutes')} onChange={(v) => f.set('booking.holdMinutes', v ?? 0)} min={1} hint="How long a car is held while the customer pays" />
-          <NumberField label="Unapproved request hold (hours)" value={n('booking.pendingHoldHours')} onChange={(v) => f.set('booking.pendingHoldHours', v ?? 0)} min={0} hint="An unpaid request you have not approved is cancelled after this long, freeing the car. 0 keeps it until you act" />
-          <NumberField label="Open unpaid requests per customer" value={n('booking.maxOpenUnpaidOrders')} onChange={(v) => f.set('booking.maxOpenUnpaidOrders', v ?? 0)} min={0} hint="Stops one account from holding many cars without paying. 0 = no limit" />
-          <NumberField label="Free cancellation up to (hours before)" value={n('booking.cancellationFreeHours')} onChange={(v) => f.set('booking.cancellationFreeHours', v ?? 0)} min={0} />
-          <NumberField label="Refund after that (%)" value={n('booking.cancellationLateRefundPercent')} onChange={(v) => f.set('booking.cancellationLateRefundPercent', v ?? 0)} min={0} max={100} />
-          <NumberField label="Driver travel buffer (minutes)" value={n('driver.bufferMinutes')} onChange={(v) => f.set('driver.bufferMinutes', v ?? 0)} min={0} hint="Kept free either side of a driver's job" />
-          <NumberField label="Car preparation buffer (minutes)" value={n('booking.bufferMinutes')} onChange={(v) => f.set('booking.bufferMinutes', v ?? 0)} min={0} max={1440} hint="Kept free before and after every booking for cleaning and handover. Not charged." />
-          <NumberField label="Book up to (days ahead)" value={n('booking.maxAdvanceDays')} onChange={(v) => f.set('booking.maxAdvanceDays', v ?? 1)} min={1} max={1095} hint="Bookings always start today or later" />
-          <NumberField label="Vehicles per booking (max)" value={n('booking.maxVehiclesPerOrder')} onChange={(v) => f.set('booking.maxVehiclesPerOrder', v ?? 1)} min={1} max={20} hint="How many cars a customer can book together" />
-          <div className="full"><ToggleField label="Customers can extend bookings in the app" checked={f.v['booking.allowExtensions'] as boolean} onChange={(c) => f.set('booking.allowExtensions', c)} onText="On" offText="Off" hint="Only when the car is free afterwards. Otherwise they can ask you, and you approve or decline." /></div>
-          <div className="full"><ToggleField label="Require approval for new bookings" checked={f.v['booking.requireApproval'] as boolean} onChange={(c) => f.set('booking.requireApproval', c)} onText="On" offText="Off" hint="On: bookings start as Pending until you approve. Off: they go straight to payment." /></div>
+    <div className="bz">
+      <div className="panel bz-head">
+        <div className="bz-logo">{logoUrl ? <img src={logoUrl} alt={`${str('company.name')} logo`} /> : <FiImage size={26} />}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 className="bz-title">Business details</h2>
+          <div className="muted">Manage your business information and company profile. It appears on receipts, statements and customer emails.</div>
         </div>
-      </Panel>
-      <Panel title="Delivery and collection" hint="Delivery is priced per booking: staff work out the charge and add it on the booking page, and the customer is emailed the new total.">
-        <div className="form-grid">
-          <MoneyField label="Showroom collection fee" value={n('delivery.showroomFeePence')} onChange={(v) => f.set('delivery.showroomFeePence', v ?? 0)} hint="Leave at 0 to keep collection free" />
-        </div>
-      </Panel>
-      <Panel title="Company" hint="Shown on receipts and invoices.">
-        <div className="form-grid">
-          <TextField label="Company name" value={f.v['company.name'] as string} onChange={(v) => f.set('company.name', v)} />
-          <TextField label="Support email" value={f.v['company.supportEmail'] as string} onChange={(v) => f.set('company.supportEmail', v)} />
-          <TextField label="Support phone" value={f.v['company.supportPhone'] as string} onChange={(v) => f.set('company.supportPhone', v)} />
-          <TextField label="VAT number" value={f.v['company.vatNumber'] as string} onChange={(v) => f.set('company.vatNumber', v)} />
-          <div className="full"><TextField label="Business address" value={f.v['company.address'] as string} onChange={(v) => f.set('company.address', v)} /></div>
-        </div>
-      </Panel>
-      <Panel title="Emails" hint="Customer emails use your logo and these details. The owner gets the full booking details for new requests, confirmations and cancellations.">
-        <div className="form-grid">
-          <div className="full"><TextField label="Owner notification emails" value={f.v['notifications.ownerEmails'] as string} onChange={(v) => f.set('notifications.ownerEmails', v)} hint="Separate several addresses with commas. Leave blank to use the support email." /></div>
-          <TextField label="Website" value={f.v['company.websiteUrl'] as string} onChange={(v) => f.set('company.websiteUrl', v)} hint="Linked from the buttons in customer emails" />
-          <TextField label="Dashboard address" value={f.v['company.dashboardUrl'] as string} onChange={(v) => f.set('company.dashboardUrl', v)} hint="Adds an Open in dashboard button to owner emails" />
-        </div>
-      </Panel>
+        <SaveButton />
+      </div>
+
+      <div className="bz-grid">
+        <Card icon={FiBriefcase} title="Business profile" hint="Who you are, as shown on documents">
+          <div className="bz-logo-row">
+            <div className="bz-logo lg">{logoUrl ? <img src={logoUrl} alt="" /> : <FiImage size={30} />}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="strong">Business logo</div>
+              <div className="muted small">JPEG, PNG or WebP up to 8 MB. Printed on receipts and statements. Saved straight away.</div>
+              <div className="row wrap" style={{ gap: 8 }}>
+                <button className="btn sm" disabled={logoAction.busy} onClick={() => logo.current?.click()}><FiUploadCloud /> {logoAction.busy ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}</button>
+                {logoUrl ? <button className="btn sm danger" disabled={logoAction.busy} onClick={() => logoAction.run(async () => { await api('/settings/logo', { method: 'DELETE' }); onSaved(); }, 'Logo removed')}><FiTrash2 /> Remove</button> : null}
+              </div>
+              <input ref={logo} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { uploadLogo(e.target.files?.[0]); e.target.value = ''; }} />
+            </div>
+          </div>
+          <ErrorBox error={logoAction.error} />
+          <div className="form-grid">
+            <div className="full"><TextField label="Business name *" value={str('company.name')} onChange={text('company.name')} error={err('company.name')} placeholder="e.g. Supercarstars Ltd" /></div>
+            <SelectField label="Business type" value={str('company.type')} onChange={text('company.type')} options={[{ value: '', label: 'Choose a type' }, ...TYPES.map((t) => ({ value: t, label: t }))]} />
+            <TextField label="Registration number" value={str('company.registrationNumber')} onChange={text('company.registrationNumber')} placeholder="e.g. 01234567" hint="Company number, if registered" />
+            <TextField label="VAT number" value={str('company.vatNumber')} onChange={text('company.vatNumber')} placeholder="e.g. GB123456789" hint="Printed on receipts when set" />
+            <div className="full"><TextField label="Business description" value={str('company.description')} onChange={text('company.description')} multiline placeholder="A short summary of what you offer" /></div>
+          </div>
+        </Card>
+
+        <Card icon={FiPhone} title="Contact information" hint="How customers and suppliers reach you">
+          <div className="form-grid">
+            <TextField label="Business email" type="email" value={str('company.email')} onChange={text('company.email')} error={err('company.email')} placeholder="hello@yourcompany.com" />
+            <TextField label="Support email" type="email" value={str('company.supportEmail')} onChange={text('company.supportEmail')} error={err('company.supportEmail')} placeholder="support@yourcompany.com" hint="Shown to customers in emails and on receipts" />
+            <TextField label="Contact number" value={str('company.supportPhone')} onChange={text('company.supportPhone')} placeholder="020 0000 0000" hint="Shown to customers" />
+            <TextField label="Alternate number" value={str('company.altPhone')} onChange={text('company.altPhone')} placeholder="Optional" />
+            <div className="full"><TextField label="Website" value={str('company.websiteUrl')} onChange={text('company.websiteUrl')} error={err('company.websiteUrl')} placeholder="https://yourcompany.com" hint="Linked from the buttons in customer emails" /></div>
+          </div>
+        </Card>
+
+        <Card icon={FiMapPin} title="Business address" hint="Printed on receipts and statements">
+          <div className="form-grid">
+            <div className="full"><TextField label="Street address" value={str('company.addressLine1')} onChange={text('company.addressLine1')} placeholder="Building and street" /></div>
+            <div className="full"><TextField label="Address line 2" value={str('company.addressLine2')} onChange={text('company.addressLine2')} placeholder="Unit, floor (optional)" /></div>
+            <TextField label="City" value={str('company.city')} onChange={text('company.city')} />
+            <TextField label="County / state / province" value={str('company.region')} onChange={text('company.region')} />
+            <TextField label="Postcode" value={str('company.postcode')} onChange={(v) => f.set('company.postcode', v.toUpperCase())} />
+            <SelectField label="Country" value={str('company.country')} onChange={text('company.country')} options={[...new Set([...COUNTRIES, str('company.country')].filter(Boolean))].map((c) => ({ value: c, label: c }))} />
+          </div>
+          <div className="bz-printed"><span className="muted small">Printed as</span><div>{printed || <span className="muted">No address yet</span>}</div></div>
+        </Card>
+
+        <Card icon={FiBell} title="Notifications and links" hint="Where booking alerts go">
+          <div className="form-grid">
+            <div className="full"><TextField label="Owner notification emails" value={str('notifications.ownerEmails')} onChange={text('notifications.ownerEmails')} error={err('notifications.ownerEmails')} hint="Get new bookings, confirmations and cancellations. Separate several with commas. Blank uses the support email" /></div>
+            <div className="full"><TextField label="Dashboard address" value={str('company.dashboardUrl')} onChange={text('company.dashboardUrl')} error={err('company.dashboardUrl')} placeholder="https://admin.yourcompany.com" hint="Adds an Open in dashboard button to owner emails" /></div>
+          </div>
+        </Card>
+      </div>
+
       <ErrorBox error={f.error} />
-      <div><button className="btn gold" disabled={f.busy || !f.changed.length || bad} onClick={() => f.save(keys)}>{f.busy ? 'Saving…' : 'Save settings'}</button></div>
-    </>
+      {dirty ? (
+        <div className="bz-bar" role="region" aria-label="Unsaved changes">
+          <span>You have unsaved changes{invalid ? ': fix the highlighted fields first' : ''}</span>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn" disabled={f.busy} onClick={f.reset}>Discard</button>
+            <SaveButton />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

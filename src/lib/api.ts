@@ -107,23 +107,32 @@ export const newIdempotencyKey = () => `${Date.now().toString(36)}-${Math.random
  * Opens a receipt or statement (server-rendered HTML) in a new tab, where it can be printed or saved as PDF.
  * The tab is opened first so pop-up blockers allow it, then filled once the authenticated request returns.
  */
+/** Prints a receipt, statement or other document straight away: the print dialog opens on this page, no new tab. */
 export async function openDocument(path: string) {
-  const win = window.open('', '_blank');
   const t = tokenStore.get();
-  try {
-    const res = await fetch(API_URL + '/api/admin' + path, { headers: t ? { authorization: 'Bearer ' + t } : {} });
-    if (!res.ok) {
-      const e = (await res.json().catch(() => null))?.error;
-      throw new ApiError(res.status, e?.message ?? `Could not open the document (${res.status})`, e?.code);
-    }
-    const url = URL.createObjectURL(new Blob([await res.text()], { type: 'text/html' }));
-    if (win) win.location.href = url;
-    else window.location.href = url;
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  } catch (e) {
-    win?.close();
-    throw e;
+  const res = await fetch(API_URL + '/api/admin' + path, { headers: t ? { authorization: 'Bearer ' + t } : {} }).catch(() => {
+    throw new ApiError(0, `Cannot reach the server at ${API_URL}. Check that the API is running.`, 'network');
+  });
+  if (!res.ok) {
+    const e = (await res.json().catch(() => null))?.error;
+    throw new ApiError(res.status, e?.message ?? `Could not open the document (${res.status})`, e?.code);
   }
+  const html = await res.text();
+  // A hidden frame holds the document; its own print button and margins are handled by the document's print styles.
+  document.getElementById('print-frame')?.remove();
+  const frame = document.createElement('iframe');
+  frame.id = 'print-frame';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  await new Promise<void>((resolve) => {
+    frame.onload = () => resolve(); // fires once images such as the logo have loaded
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  });
+  const win = frame.contentWindow!;
+  win.addEventListener('afterprint', () => setTimeout(() => frame.remove(), 500));
+  win.focus();
+  win.print();
 }
 
 /** An authenticated image (e.g. a licence photo) as an object URL; revoke it when done. */

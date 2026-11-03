@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { FiArrowLeft, FiEye } from 'react-icons/fi';
 import { api, useApi } from '../../lib/api';
 import AvailabilityCalendar from '../calendar/AvailabilityCalendar';
-import PricingRules from '../pricing/PricingRules';
+import { VehiclePrices } from './editor/Prices';
+import VehicleWizard from './wizard/VehicleWizard';
 import { useAction } from '../../lib/hooks';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ErrorBox, Loading } from '../../components/feedback';
@@ -18,17 +19,19 @@ import { History } from './editor/History';
 import { Preview } from './editor/Preview';
 
 export default function VehicleEditor({ id }: { id: string }) {
-  const isNew = id === 'new';
-  const { data, error, loading, reload } = useApi<Row>(isNew ? null : `/vehicles/${id}`);
+  return id === 'new' ? <VehicleWizard /> : <ExistingVehicle id={id} />;
+}
+
+function ExistingVehicle({ id }: { id: string }) {
+  const { data, error, loading, reload } = useApi<Row>(`/vehicles/${id}`);
   const [tab, setTab] = useState<'details' | 'images' | 'events' | 'addons' | 'pricing' | 'availability' | 'history'>('details');
   const [preview, setPreview] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { run, busy, error: actError, setError } = useAction();
   const { data: ev } = useApi<{ items: { id: string; title: string; archived_at: string | null }[] }>('/event-types');
-  const { data: fleet } = useApi<{ items: { id: string; make: string; model: string }[] }>('/vehicles?limit=200');
 
-  if (!isNew && loading && !data) return <Loading />;
-  if (!isNew && error) return <ErrorBox error={error} retry={reload} />;
+  if (loading && !data) return <Loading />;
+  if (error) return <ErrorBox error={error} retry={reload} />;
 
   const setPublished = (published: boolean) => run(async () => { await api(`/vehicles/${id}/publish`, { method: 'POST', body: { published } }); reload(); }, published ? 'Vehicle published' : 'Vehicle unpublished');
 
@@ -37,7 +40,7 @@ export default function VehicleEditor({ id }: { id: string }) {
       <div className="row between wrap">
         <div className="row">
           <button className="btn sm" onClick={() => go('vehicles')}><FiArrowLeft /> Fleet</button>
-          {data ? <><h2 className="display" style={{ margin: 0, fontSize: 24 }}>{data.make} {data.model}</h2><Badge status={data.operational_status} /><Badge status={data.published ? 'published' : 'draft'} label={data.published ? 'Published' : 'Not published'} /></> : <h2 className="display" style={{ margin: 0, fontSize: 24 }}>New vehicle</h2>}
+          {data ? <><h2 className="display" style={{ margin: 0, fontSize: 24 }}>{data.make} {data.model}</h2><Badge status={data.operational_status} /><Badge status={data.published ? 'published' : 'draft'} label={data.published ? 'Published' : 'Not published'} /></> : null}
         </div>
         {data ? (
           <div className="row wrap">
@@ -49,20 +52,18 @@ export default function VehicleEditor({ id }: { id: string }) {
       </div>
       <ErrorBox error={actError} />
 
-      {!isNew ? (
-        <Tabs value={tab} onChange={(t) => { setError(null); setTab(t); }} items={[
-          { value: 'details', label: 'Details' }, { value: 'images', label: 'Images', count: data?.images.length },
-          { value: 'events', label: 'Events' }, { value: 'addons', label: 'Add-ons' }, { value: 'pricing', label: 'Pricing' }, { value: 'availability', label: 'Availability' }, { value: 'history', label: 'Bookings' },
-        ]} />
-      ) : null}
+      <Tabs value={tab} onChange={(t) => { setError(null); setTab(t); }} items={[
+        { value: 'details', label: 'Details' }, { value: 'pricing', label: 'Pricing' }, { value: 'images', label: 'Images', count: data?.images.length },
+        { value: 'events', label: 'Events' }, { value: 'addons', label: 'Add-ons' }, { value: 'availability', label: 'Availability' }, { value: 'history', label: 'Bookings' },
+      ]} />
 
-      {tab === 'details' ? <Details key={data?.id ?? 'new'} row={data} onSaved={(r) => { if (isNew) go('vehicles/' + r.id); else reload(); }} /> : null}
+      {tab === 'details' && data ? <Details key={data.id + ':' + data.updated_at} row={data} onSaved={() => reload()} /> : null}
       {tab === 'images' && data ? <Images row={data} reload={reload} /> : null}
       {tab === 'events' && data ? <EventsTab row={data} events={(ev?.items ?? []).filter((e) => !e.archived_at)} reload={reload} /> : null}
       {tab === 'addons' && data ? <AddonsTab row={data} reload={reload} /> : null}
       {tab === 'pricing' && data ? (
-        <Panel title="Pricing for this car" hint={`Base rate ${gbp(data.price_per_hour_pence)} per hour (edit under Details)`}>
-          <PricingRules vehicleId={id} vehicles={(fleet?.items ?? []).map((v) => ({ id: v.id, name: `${v.make} ${v.model}` }))} events={(ev?.items ?? []).map((e) => ({ id: e.id, name: e.title }))} />
+        <Panel title="Pricing" hint={`Standard price ${gbp(data.price_per_hour_pence)} per hour, ${data.min_hours} to ${data.max_hours} hours (change it on the Details tab). Add other price types below.`}>
+          <VehiclePrices vehicleId={id} events={(ev?.items ?? []).filter((e) => !e.archived_at).map((e) => ({ id: e.id, name: e.title }))} />
         </Panel>
       ) : null}
       {tab === 'availability' && data ? <Panel title="Availability"><AvailabilityCalendar vehicleId={id} /></Panel> : null}

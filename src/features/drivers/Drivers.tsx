@@ -11,7 +11,7 @@ import { go } from '../../lib/nav';
 import { type Side, type LicenceImage, LicenceView, LicencePhotos } from './LicencePhotos';
 
 type Driver = {
-  id: string; internal_ref: string | null; full_name: string; phone: string; email: string | null; license_number?: string | null; license_expiry: string | null;
+  id: string; internal_ref: string | null; full_name: string; phone: string; email: string | null; address: string | null; license_number?: string | null; license_type?: string | null; license_expiry: string | null;
   employment: string; working_hours: { start: string; end: string } | null; notes: string | null; active: boolean; upcomingAssignments: number; licenceImages: number;
 };
 
@@ -66,8 +66,8 @@ function DriverView({ d, onClose, onEdit }: { d: Driver; onClose: () => void; on
   return (
     <Drawer title={d.full_name} onClose={onClose} footer={<button className="btn gold" onClick={onEdit}>Edit driver</button>}>
       <dl className="kv">
-        <dt>Phone</dt><dd>{d.phone}</dd><dt>Email</dt><dd>{d.email ?? '—'}</dd><dt>Employment</dt><dd>{d.employment}</dd>
-        {'license_number' in d ? <><dt>Licence no.</dt><dd>{d.license_number ?? '—'}</dd></> : null}
+        <dt>Phone</dt><dd>{d.phone}</dd><dt>Email</dt><dd>{d.email ?? '—'}</dd><dt>Address</dt><dd>{d.address ?? '—'}</dd><dt>Employment</dt><dd>{d.employment}</dd>
+        {'license_number' in d ? <><dt>Licence no.</dt><dd>{d.license_number ?? '—'}</dd><dt>Licence type</dt><dd>{d.license_type ?? '—'}</dd></> : null}
         <dt>Licence expiry</dt><dd>{d.license_expiry ? fmtDate(d.license_expiry) : '—'}</dd>
         <dt>Working hours</dt><dd>{d.working_hours ? `${d.working_hours.start}–${d.working_hours.end}` : 'Any time'}</dd>
         {d.notes ? <><dt>Notes</dt><dd className="pre">{d.notes}</dd></> : null}
@@ -91,7 +91,10 @@ function DriverForm({ d, onClose, onSaved }: { d: Driver | null; onClose: () => 
   const [fullName, setFullName] = useState(d?.full_name ?? '');
   const [phone, setPhone] = useState(d?.phone ?? '');
   const [email, setEmail] = useState(d?.email ?? '');
+  const [address, setAddress] = useState(d?.address ?? '');
   const [licence, setLicence] = useState(d?.license_number ?? '');
+  const [licenceType, setLicenceType] = useState(d?.license_type ?? '');
+  const [tried, setTried] = useState(false);
   const [expiry, setExpiry] = useState(d?.license_expiry ? d.license_expiry.slice(0, 10) : '');
   const [employment, setEmployment] = useState(d?.employment ?? 'employee');
   const [hours, setHours] = useState(!!d?.working_hours);
@@ -103,12 +106,22 @@ function DriverForm({ d, onClose, onSaved }: { d: Driver | null; onClose: () => 
   const [removed, setRemoved] = useState<Side[]>([]);
   const [savedId, setSavedId] = useState<string | null>(d?.id ?? null);
   const { run, busy, error, fieldErrors } = useAction();
+  const today = new Date().toISOString().slice(0, 10);
+  const errors: Record<string, string> = {};
+  if (!fullName.trim()) errors.fullName = 'Enter the driver\u2019s name';
+  if (phone.trim().length < 5) errors.phone = 'Enter a phone number';
+  if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = 'Enter a valid email address';
+  if (hours && end <= start) errors.end = 'Must be after the start time';
+  const e = (k: string) => fieldErrors[k] ?? (tried ? errors[k] : undefined);
+  const expired = !!expiry && expiry < today;
   const save = async () => {
+    setTried(true);
+    if (Object.keys(errors).length) return;
     const body: Record<string, unknown> = {
-      fullName: fullName.trim(), phone: phone.trim(), email: email.trim() || null, employment,
+      fullName: fullName.trim(), phone: phone.trim(), email: email.trim() || null, address: address.trim() || null, employment,
       workingHours: hours ? { start, end } : null, notes: notes.trim() || null, active,
     };
-    if (canSeeLicence) { body.licenseNumber = licence.trim() || null; body.licenseExpiry = expiry || null; }
+    if (canSeeLicence) { body.licenseNumber = licence.trim() || null; body.licenseType = licenceType.trim() || null; body.licenseExpiry = expiry || null; }
     const ok = await run(async () => {
       // A new driver is created once; if a photo upload then fails, saving again updates that driver instead of adding another.
       const saved = await api<{ id: string }>(savedId ? `/drivers/${savedId}` : '/drivers', { method: savedId ? 'PATCH' : 'POST', body });
@@ -130,17 +143,36 @@ function DriverForm({ d, onClose, onSaved }: { d: Driver | null; onClose: () => 
     if (ok) onSaved();
   };
   return (
-    <Drawer title={d ? 'Edit driver' : 'New driver'} onClose={onClose} footer={<><button className="btn" onClick={onClose}>Cancel</button><button className="btn gold" disabled={busy || !fullName.trim() || phone.trim().length < 5} onClick={save}>{busy ? 'Saving…' : 'Save'}</button></>}>
-      <TextField label="Full name *" value={fullName} onChange={setFullName} error={fieldErrors['fullName']} />
-      <TextField label="Phone *" value={phone} onChange={setPhone} error={fieldErrors['phone']} />
-      <TextField label="Email" type="email" value={email} onChange={setEmail} error={fieldErrors['email']} />
-      <SelectField label="Employment" value={employment} onChange={setEmployment} options={[{ value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }]} />
-      {canSeeLicence ? <div className="form-grid"><TextField label="Licence number" value={licence} onChange={setLicence} hint="Visible to authorised staff only" /><TextField label="Licence expiry" type="date" value={expiry} onChange={setExpiry} /></div> : null}
-      {canSeeLicence ? <LicencePhotos driverId={savedId} pending={pending} setPending={setPending} removed={removed} setRemoved={setRemoved} /> : null}
-      <CheckField label="Restrict to working hours" checked={hours} onChange={setHours} />
-      {hours ? <div className="form-grid"><TextField label="From" type="time" value={start} onChange={setStart} /><TextField label="Until" type="time" value={end} onChange={setEnd} /></div> : null}
-      <TextField label="Notes" value={notes} onChange={setNotes} multiline />
-      <ToggleField label="Driver status" checked={active} onChange={setActive} hint="Inactive drivers cannot be assigned. Reassign upcoming jobs first." />
+    <Drawer title={d ? `Edit ${d.full_name}` : 'New driver'} onClose={onClose} footer={<><button className="btn" onClick={onClose}>Cancel</button><button className="btn gold" disabled={busy} onClick={save}>{busy ? 'Saving…' : d ? 'Save changes' : 'Add driver'}</button></>}>
+      <section className="dr-section">
+        <h4>Personal information</h4>
+        <TextField label="Full name *" value={fullName} onChange={setFullName} error={e('fullName')} />
+        <div className="form-grid">
+          <TextField label="Phone *" value={phone} onChange={setPhone} error={e('phone')} />
+          <TextField label="Email" type="email" value={email} onChange={setEmail} error={e('email')} />
+        </div>
+        <TextField label="Address" value={address} onChange={setAddress} multiline />
+      </section>
+      {canSeeLicence ? (
+        <section className="dr-section">
+          <h4>Driving licence</h4>
+          <div className="form-grid">
+            <TextField label="Licence number" value={licence} onChange={(v) => setLicence(v.toUpperCase())} hint="Visible to authorised staff only" />
+            <TextField label="Licence type" value={licenceType} onChange={setLicenceType} placeholder="e.g. B, C1" hint="Categories the driver holds" />
+            <TextField label="Expiry date" type="date" value={expiry} onChange={setExpiry} />
+          </div>
+          {expired ? <div className="error-box">This licence expired on {fmtDate(expiry)}. Update the expiry date once the driver has renewed it.</div> : null}
+          <LicencePhotos driverId={savedId} pending={pending} setPending={setPending} removed={removed} setRemoved={setRemoved} />
+        </section>
+      ) : null}
+      <section className="dr-section">
+        <h4>Work and availability</h4>
+        <SelectField label="Employment" value={employment} onChange={setEmployment} options={[{ value: 'employee', label: 'Employee' }, { value: 'contractor', label: 'Contractor' }]} />
+        <CheckField label="Only available during set hours" checked={hours} onChange={setHours} />
+        {hours ? <div className="form-grid"><TextField label="From" type="time" value={start} onChange={setStart} /><TextField label="Until" type="time" value={end} onChange={setEnd} error={e('end')} /></div> : null}
+        <ToggleField label="Driver status" checked={active} onChange={setActive} hint="Inactive drivers cannot be assigned. Reassign upcoming jobs first." />
+        <TextField label="Notes" value={notes} onChange={setNotes} multiline />
+      </section>
       <ErrorBox error={error} />
     </Drawer>
   );

@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { FiClipboard, FiPlus } from 'react-icons/fi';
 import { qs, useApi } from '../../lib/api';
 import { CheckField, SelectField, TextField } from '../../components/forms';
@@ -9,6 +9,7 @@ import { Badge, Empty, Panel } from '../../components/ui';
 import { addDays, fmtDateTime, gbp, humanize, ymd } from '../../lib/format';
 import { go } from '../../lib/nav';
 import { NewBooking } from './NewBooking';
+import { NEW_BOOKINGS_EVENT } from '../notifications/BookingAlerts';
 
 export type BookingRow = {
   id: string; ref: string; status: string; paymentStatus: string; startAt: string; endAt: string; hours: number; totalPence: number; paidPence: number; refundedPence: number;
@@ -27,7 +28,7 @@ export default function Bookings({ initial }: { initial?: { status?: string } })
   const [eventTypeId, setEventTypeId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [sort, setSort] = useState('start_desc');
+  const [sort, setSort] = useState('created_desc');
   const [extensionRequests, setExtensionRequests] = useState(false);
   const [offset, setOffset] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -42,6 +43,11 @@ export default function Bookings({ initial }: { initial?: { status?: string } })
     return acc;
   }, []);
   const reset = (fn: () => void) => { fn(); setOffset(0); };
+  // A new booking just came in: refresh the list so it shows at the top.
+  useEffect(() => {
+    window.addEventListener(NEW_BOOKINGS_EVENT, reload);
+    return () => window.removeEventListener(NEW_BOOKINGS_EVENT, reload);
+  }, [reload]);
 
   return (
     <>
@@ -54,7 +60,7 @@ export default function Bookings({ initial }: { initial?: { status?: string } })
           <SelectField label="Event" value={eventTypeId} onChange={(v) => reset(() => setEventTypeId(v))} options={[{ value: '', label: 'All' }, ...(ev?.items ?? []).map((e) => ({ value: e.id, label: e.title }))]} />
           <TextField label="From" type="date" value={from} onChange={(v) => reset(() => setFrom(v))} />
           <TextField label="To" type="date" value={to} onChange={(v) => reset(() => setTo(v))} />
-          <SelectField label="Sort" value={sort} onChange={setSort} options={[{ value: 'start_desc', label: 'Event date, latest' }, { value: 'start_asc', label: 'Event date, soonest' }, { value: 'created_desc', label: 'Newest created' }]} />
+          <SelectField label="Sort" value={sort} onChange={setSort} options={[{ value: 'created_desc', label: 'Newest booked first' }, { value: 'start_desc', label: 'Event date, latest' }, { value: 'start_asc', label: 'Event date, soonest' }]} />
           <CheckField label="Extension requests only" checked={extensionRequests} onChange={(v) => reset(() => setExtensionRequests(v))} />
         </div>
         <ErrorBox error={error} retry={reload} />

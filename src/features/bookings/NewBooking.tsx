@@ -189,7 +189,6 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
   const maxDate = ymd(addDays(new Date(), Number(cfg?.settings['booking.maxAdvanceDays'] ?? 365)));
   const maxVehicles = Number(cfg?.settings['booking.maxVehiclesPerOrder'] ?? 10);
   const [items, setItems] = useState<ItemDraft[]>(() => [blankItem()]);
-  const [offerCode, setOfferCode] = useState('');
   const [initialStatus, setInitialStatus] = useState('awaiting_payment');
   const { run, busy, error } = useAction();
   const buffer = Number(cfg?.settings['booking.bufferMinutes'] ?? 60);
@@ -209,7 +208,7 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
   const complete = items.every((i) => i.vehicleId && i.hours && i.date >= today && driverFor(i, cars.find((v) => v.id === i.vehicleId), events.find((e) => e.id === i.eventTypeId)?.pricing_basis === 'distance'));
 
   // Live price from the server (same engine as the booking), refreshed as the vehicles change.
-  const quoteKey = complete ? JSON.stringify({ items: items.map(body), offerCode, customerId: customer?.id }) : '';
+  const quoteKey = complete ? JSON.stringify({ items: items.map(body), customerId: customer?.id }) : '';
   const dKey = useDebounced(quoteKey, 500);
   const [quote, setQuote] = useState<OrderQuote | null>(null);
   const [quoteError, setQuoteError] = useState<Error | null>(null);
@@ -223,7 +222,7 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
   const update = (key: number, patch: Partial<ItemDraft>) => setItems((p) => p.map((i) => (i.key === key ? { ...i, ...patch } : i)));
   const create = async () => {
     const r = await run(() => api<{ bookingId: string }>('/orders', { body: {
-      customerId: customer!.id, items: items.map(body), offerCode: offerCode || null, initialStatus,
+      customerId: customer!.id, items: items.map(body), initialStatus,
     } }), items.length > 1 ? `Booking created with ${items.length} vehicles` : 'Booking created');
     if (r) onCreated(r.bookingId);
   };
@@ -250,9 +249,6 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
       ))}
       {items.length < maxVehicles ? <button className="btn" style={{ alignSelf: 'flex-start' }} onClick={() => setItems((p) => [...p, blankItem(p[p.length - 1])])}><FiPlus /> Add another vehicle</button> : null}
 
-      <div className="form-grid">
-        <TextField label="Offer code" value={offerCode} onChange={setOfferCode} hint="Automatic offers are applied for you" />
-      </div>
       <SelectField label="Start as" value={initialStatus} onChange={setInitialStatus} hint="'Confirmed' holds the cars without payment and is recorded in the history. Record cash or card payments on the booking page."
         options={[{ value: 'awaiting_payment', label: 'Awaiting payment' }, { value: 'pending', label: 'Pending review' }, { value: 'confirmed', label: 'Confirmed (no payment yet)' }]} />
 
