@@ -190,7 +190,6 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
   const maxVehicles = Number(cfg?.settings['booking.maxVehiclesPerOrder'] ?? 10);
   const [items, setItems] = useState<ItemDraft[]>(() => [blankItem()]);
   const [offerCode, setOfferCode] = useState('');
-  const [children, setChildren] = useState<number | null>(null);
   const [initialStatus, setInitialStatus] = useState('awaiting_payment');
   const { run, busy, error } = useAction();
   const buffer = Number(cfg?.settings['booking.bufferMinutes'] ?? 60);
@@ -204,7 +203,7 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
     return {
       vehicleId: i.vehicleId, eventTypeId: i.eventTypeId || null, date: i.date, time: i.time, hours: i.hours, experience: isDistance ? 'stationary' : i.experience,
       driverOption: driverFor(i, veh, isDistance) || null, address: i.address || null, pickupAddress: i.pickup || null, dropoffAddress: i.dropoff || null,
-      addons: offered.filter((a) => i.qty[a.id]).map((a) => ({ id: a.id, quantity: i.qty[a.id] })), children,
+      addons: offered.filter((a) => i.qty[a.id]).map((a) => ({ id: a.id, quantity: i.qty[a.id] })),
     };
   };
   const complete = items.every((i) => i.vehicleId && i.hours && i.date >= today && driverFor(i, cars.find((v) => v.id === i.vehicleId), events.find((e) => e.id === i.eventTypeId)?.pricing_basis === 'distance'));
@@ -253,7 +252,6 @@ export function NewBooking({ onClose, onCreated }: { onClose: () => void; onCrea
 
       <div className="form-grid">
         <TextField label="Offer code" value={offerCode} onChange={setOfferCode} hint="Automatic offers are applied for you" />
-        <NumberField label="Children" value={children} onChange={setChildren} min={0} />
       </div>
       <SelectField label="Start as" value={initialStatus} onChange={setInitialStatus} hint="'Confirmed' holds the cars without payment and is recorded in the history. Record cash or card payments on the booking page."
         options={[{ value: 'awaiting_payment', label: 'Awaiting payment' }, { value: 'pending', label: 'Pending review' }, { value: 'confirmed', label: 'Confirmed (no payment yet)' }]} />

@@ -100,7 +100,6 @@ export default function BookingDetail({ id }: { id: string }) {
                 : b.experience === 'delivered'
                   ? <>Deliver to: {b.address} <MapLink p={b.points.address} />{b.deliveryMiles != null ? <div className="muted small">{b.deliveryMiles} miles from the car's base (measured)</div> : null}</>
                   : 'Collect from showroom'}</dd>
-              {b.children != null ? <><dt>Children</dt><dd>{b.children}</dd></> : null}
               {b.consents ? <><dt>Consents</dt><dd>Guardian present: {b.consents.guardian ? 'yes' : 'no'} · Terms: {b.consents.terms ? 'yes' : 'no'} · Photo marketing: {b.consents.marketingPhotos ? 'yes' : 'no'}</dd></> : null}
               <dt>Created</dt><dd>{fmtDateTime(b.createdAt)} · {b.source === 'admin' ? `Admin${b.createdByName ? ` (${b.createdByName})` : ''}` : 'Customer app'}</dd>
             </dl>
