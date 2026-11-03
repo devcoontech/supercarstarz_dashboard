@@ -8,7 +8,7 @@ import { Badge, Empty, Panel } from '../../../components/ui';
 import { gbp } from '../../../lib/format';
 import { go } from '../../../lib/nav';
 import { blankVehicle, vehicleBody, vehicleErrors, type VehicleForm } from '../vehicleForm';
-import { AvailabilityFields, BasicsFields, PricingFields, SpecsFields } from '../VehicleFields';
+import { AvailabilityFields, BasicsFields, PricingFields } from '../VehicleFields';
 import { describePrice, PriceForm, PriceTable, priceTypeLabel, type PriceBody } from '../editor/Prices';
 
 /**
@@ -19,7 +19,6 @@ import { describePrice, PriceForm, PriceTable, priceTypeLabel, type PriceBody } 
 
 const STEPS = [
   { title: 'Basic information', desc: 'Brand, model and year' },
-  { title: 'Specifications', desc: 'Engine, seats and features' },
   { title: 'Pricing', desc: 'What the car costs to book' },
   { title: 'Images', desc: 'Photos for the listing' },
   { title: 'Availability', desc: 'Status, location and events' },
@@ -64,7 +63,7 @@ export default function VehicleWizard() {
   useEffect(() => () => picsRef.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
 
   const errs = vehicleErrors(f);
-  const stepErrors = [errs.basics, errs.specs, errs.pricing, {}, errs.availability, {}];
+  const stepErrors = [errs.basics, errs.pricing, {}, errs.availability, {}];
   const shown = (i: number) => ({ ...fieldErrors, ...(tried[i] ? stepErrors[i] : {}) });
   const main = pics.find((p) => p.key === mainKey) ?? pics[0];
   const distanceEvents = events.filter((e) => eventIds.includes(e.id) && e.pricing_basis === 'distance');
@@ -170,10 +169,9 @@ export default function VehicleWizard() {
       <div className="vw-body" key={step}>
         <h3 className="vw-title">{STEPS[step].title}</h3>
         {step === 0 ? <BasicsFields f={f} set={set} err={shown(0)} /> : null}
-        {step === 1 ? <SpecsFields f={f} set={set} err={shown(1)} /> : null}
-        {step === 2 ? (
+        {step === 1 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <PricingFields f={f} set={set} err={shown(2)} />
+            <PricingFields f={f} set={set} err={shown(1)} />
             <div className="vw-group">
               <div className="row between wrap">
                 <div><div className="strong">Other price types (optional)</div><div className="muted small">Packages such as a full day, a different rate for one event, extra hours, per-mile trips or special dates.</div></div>
@@ -183,12 +181,12 @@ export default function VehicleWizard() {
             </div>
           </div>
         ) : null}
-        {step === 3 ? (
+        {step === 2 ? (
           <ImagesStep pics={pics} mainKey={main?.key ?? null} errors={picErrors} onAdd={addFiles} onRemove={removePic} onMain={setMainKey} />
         ) : null}
-        {step === 4 ? (
+        {step === 3 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <AvailabilityFields f={f} set={set} err={shown(4)} />
+            <AvailabilityFields f={f} set={set} err={shown(3)} />
             <div className="vw-group">
               <div className="strong">Events this car is offered for</div>
               {!events.length ? <span className="muted small">No events yet. Add them under Events.</span> : (
@@ -203,7 +201,7 @@ export default function VehicleWizard() {
             ) : null}
           </div>
         ) : null}
-        {step === 5 ? (
+        {step === 4 ? (
           <Review f={f} pics={pics} main={main} prices={prices} events={events.filter((e) => eventIds.includes(e.id)).map((e) => e.title)}
             addons={(ad?.items ?? []).filter((a) => addonIds.includes(a.id)).map((a) => a.name)} eventOpts={eventOpts} warnings={warnings} onEdit={goTo} />
         ) : null}
@@ -281,19 +279,14 @@ function Review({ f, pics, main, prices, events, addons, eventOpts, warnings, on
           <Item k="Registration" v={f.fleetRef} /><Item k="Colour" v={f.colour} /><Item k="Description" v={f.description ? <span className="pre">{f.description}</span> : null} />
         </dl></Section>
         <Section i={1}><dl className="kv">
-          <Item k="Transmission" v={f.transmission} /><Item k="Fuel" v={f.fuelType} /><Item k="Seats" v={f.seats} /><Item k="Doors" v={f.doors} />
-          <Item k="Engine" v={f.engine} /><Item k="Power" v={f.power} /><Item k="Top speed" v={f.topSpeed} /><Item k="Mileage" v={f.mileage != null ? `${f.mileage.toLocaleString()} miles` : null} />
-          <Item k="Features" v={f.amenities} />
-        </dl></Section>
-        <Section i={2}><dl className="kv">
           <Item k="Price per hour" v={gbp(f.pricePerHourPence)} /><Item k="Booking length" v={`${f.minHours} to ${f.maxHours} hours`} />
           <Item k="Deposit" v={f.depositPence ? gbp(f.depositPence) : 'From Settings'} />
           <Item k="Other prices" v={prices.length ? <div>{prices.map((p) => <div key={p.key}>{priceTypeLabel(p.kind)}: {describePrice(p)} <span className="muted small">· {eName(p.eventTypeId)}</span></div>)}</div> : 'None'} />
         </dl></Section>
-        <Section i={3}>
+        <Section i={2}>
           {pics.length ? <div className="vw-thumbs">{[main!, ...pics.filter((p) => p !== main)].map((p) => <img key={p.key} src={p.url} alt="" className={p === main ? 'main' : ''} />)}</div> : <span className="muted">No images</span>}
         </Section>
-        <Section i={4}><dl className="kv">
+        <Section i={3}><dl className="kv">
           <Item k="Status" v={<Badge status={f.operationalStatus} />} /><Item k="Location" v={[f.area, f.city].filter(Boolean).join(', ')} /><Item k="Base address" v={f.baseAddress} />
           <Item k="Customers get it by" v={[f.stationaryAvailable && 'Collection', f.deliveryAvailable && 'Delivery'].filter(Boolean).join(' and ')} />
           <Item k="Driving" v={[f.selfDriveAvailable && 'Self-drive', f.chauffeurAvailable && `With a driver (${gbp(f.chauffeurFeePence)}${f.chauffeurChargeType === 'hourly' ? '/h' : ''})`].filter(Boolean).join(', ')} />

@@ -7,7 +7,7 @@ import { useSettingsForm, type S } from './settingsShared';
 export function BookingRules({ s, onSaved }: { s: S; onSaved: () => void }) {
   const f = useSettingsForm(s, onSaved);
   const n = (k: string) => f.v[k] as number;
-  const keys = ['booking.openHour', 'booking.closeHour', 'booking.minLeadHours', 'booking.requireApproval', 'booking.holdMinutes', 'booking.pendingHoldHours', 'booking.maxOpenUnpaidOrders', 'booking.cancellationFreeHours', 'booking.cancellationLateRefundPercent', 'driver.bufferMinutes', 'booking.bufferMinutes', 'booking.maxAdvanceDays', 'booking.maxVehiclesPerOrder', 'booking.allowExtensions', 'delivery.showroomFeePence'];
+  const keys = ['booking.openHour', 'booking.closeHour', 'booking.minLeadHours', 'booking.requireApproval', 'booking.holdMinutes', 'booking.cancellationFreeHours', 'booking.cancellationLateRefundPercent', 'driver.bufferMinutes', 'booking.bufferMinutes', 'booking.maxAdvanceDays', 'booking.maxVehiclesPerOrder', 'booking.allowExtensions', 'delivery.showroomFeePence'];
   const bad = n('booking.closeHour') <= n('booking.openHour') || n('booking.closeHour') > 24 || n('booking.cancellationLateRefundPercent') > 100 || n('booking.maxAdvanceDays') < 1 || n('booking.bufferMinutes') > 1440;
   return (
     <>
@@ -17,8 +17,6 @@ export function BookingRules({ s, onSaved }: { s: S; onSaved: () => void }) {
           <NumberField label="Everything must finish by (hour)" value={n('booking.closeHour')} onChange={(v) => f.set('booking.closeHour', v ?? 0)} min={1} max={24} error={n('booking.closeHour') <= n('booking.openHour') ? 'Must be after the first start hour' : undefined} />
           <NumberField label="Minimum notice (hours)" value={n('booking.minLeadHours')} onChange={(v) => f.set('booking.minLeadHours', v ?? 0)} min={0} />
           <NumberField label="Unpaid hold (minutes)" value={n('booking.holdMinutes')} onChange={(v) => f.set('booking.holdMinutes', v ?? 0)} min={1} hint="How long a car is held while the customer pays" />
-          <NumberField label="Unapproved request hold (hours)" value={n('booking.pendingHoldHours')} onChange={(v) => f.set('booking.pendingHoldHours', v ?? 0)} min={0} hint="An unpaid request you have not approved is cancelled after this long, freeing the car. 0 keeps it until you act" />
-          <NumberField label="Open unpaid requests per customer" value={n('booking.maxOpenUnpaidOrders')} onChange={(v) => f.set('booking.maxOpenUnpaidOrders', v ?? 0)} min={0} hint="Stops one account from holding many cars without paying. 0 = no limit" />
           <NumberField label="Free cancellation up to (hours before)" value={n('booking.cancellationFreeHours')} onChange={(v) => f.set('booking.cancellationFreeHours', v ?? 0)} min={0} />
           <NumberField label="Refund after that (%)" value={n('booking.cancellationLateRefundPercent')} onChange={(v) => f.set('booking.cancellationLateRefundPercent', v ?? 0)} min={0} max={100} />
           <NumberField label="Driver travel buffer (minutes)" value={n('driver.bufferMinutes')} onChange={(v) => f.set('driver.bufferMinutes', v ?? 0)} min={0} hint="Kept free either side of a driver's job" />

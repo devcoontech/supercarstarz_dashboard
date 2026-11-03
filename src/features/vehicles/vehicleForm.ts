@@ -7,7 +7,7 @@ export const TRANSMISSIONS = ['Automatic', 'Manual', 'Semi-automatic'];
 export const FUEL_TYPES = ['Petrol', 'Diesel', 'Hybrid', 'Plug-in hybrid', 'Electric'];
 
 export const blankVehicle = {
-  fleetRef: '', make: '', model: '', year: new Date().getFullYear() as number | null, category: 'Supercar', colour: '', transmission: 'Automatic', seats: 2 as number | null,
+  fleetRef: '', make: '', model: '', year: new Date().getFullYear() as number | null, category: 'Supercar', colour: '', transmission: '', seats: 2 as number | null,
   power: '', topSpeed: '', fuelType: '', doors: null as number | null, engine: '', mileage: null as number | null,
   city: '', area: '', description: '', amenities: '', pricePerHourPence: null as number | null,
   deliveryAvailable: false, deliveryFeePence: 0 as number | null, deliveryRadiusMiles: 0 as number | null, stationaryAvailable: true,

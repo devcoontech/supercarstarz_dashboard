@@ -10,12 +10,11 @@ import { useSettingsForm, EMAIL_RE, type S } from './settingsShared';
 /** Settings > Business details: the company profile printed on receipts and used in customer emails. */
 
 const KEYS = [
-  'company.name', 'company.type', 'company.registrationNumber', 'company.vatNumber', 'company.description',
+  'company.name',
   'company.email', 'company.supportEmail', 'company.supportPhone', 'company.altPhone', 'company.websiteUrl',
   'company.addressLine1', 'company.addressLine2', 'company.city', 'company.region', 'company.postcode', 'company.country',
   'notifications.ownerEmails', 'company.dashboardUrl',
 ];
-const TYPES = ['Limited company', 'Sole trader', 'Partnership', 'Limited liability partnership', 'Other'];
 const COUNTRIES = ['United Kingdom', 'Ireland', 'France', 'Germany', 'Spain', 'Italy', 'Netherlands', 'United Arab Emirates', 'United States'];
 const URL_RE = /^https?:\/\/\S+$/i;
 
@@ -97,10 +96,6 @@ export function Business({ s, onSaved }: { s: S; onSaved: () => void }) {
           <ErrorBox error={logoAction.error} />
           <div className="form-grid">
             <div className="full"><TextField label="Business name *" value={str('company.name')} onChange={text('company.name')} error={err('company.name')} placeholder="e.g. Supercarstars Ltd" /></div>
-            <SelectField label="Business type" value={str('company.type')} onChange={text('company.type')} options={[{ value: '', label: 'Choose a type' }, ...TYPES.map((t) => ({ value: t, label: t }))]} />
-            <TextField label="Registration number" value={str('company.registrationNumber')} onChange={text('company.registrationNumber')} placeholder="e.g. 01234567" hint="Company number, if registered" />
-            <TextField label="VAT number" value={str('company.vatNumber')} onChange={text('company.vatNumber')} placeholder="e.g. GB123456789" hint="Printed on receipts when set" />
-            <div className="full"><TextField label="Business description" value={str('company.description')} onChange={text('company.description')} multiline placeholder="A short summary of what you offer" /></div>
           </div>
         </Card>
 

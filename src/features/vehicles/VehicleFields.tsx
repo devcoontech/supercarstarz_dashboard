@@ -56,7 +56,6 @@ export function AvailabilityFields({ f, set, err }: P) {
         <SelectField label="Vehicle status" value={f.operationalStatus} onChange={(v) => set('operationalStatus', v)}
           hint={f.operationalStatus === 'active' ? 'Can be booked' : 'Cannot be booked until it is Active again'}
           options={[{ value: 'active', label: 'Active' }, { value: 'maintenance', label: 'Under maintenance' }, { value: 'inactive', label: 'Inactive' }]} />
-        <NumberField label="Turnaround time (minutes)" value={f.bufferMinutes} onChange={(v) => set('bufferMinutes', v)} min={0} hint="Kept free before and after each booking. The longer of this and the business setting applies" />
         <TextField label="City *" value={f.city} onChange={(v) => set('city', v)} error={err.city} placeholder="e.g. London" />
         <TextField label="Area" value={f.area} onChange={(v) => set('area', v)} placeholder="e.g. Mayfair" />
         <div className="full"><TextField label="Base address" value={f.baseAddress} onChange={(v) => set('baseAddress', v)} error={err.baseAddress} hint="Where the car is kept. Delivery distance is measured from here" /></div>
