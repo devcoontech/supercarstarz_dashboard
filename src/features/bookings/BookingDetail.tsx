@@ -180,11 +180,11 @@ export default function BookingDetail({ id }: { id: string }) {
           ) : null}
 
           {b.emails.length ? (
-            <Panel title="Customer emails" hint="Only shown as sent when the email provider accepted the message">
+            <Panel title="Emails" hint="To the customer and to the owner. Only shown as sent when the email provider accepted the message">
               <div className="list">{b.emails.map((m, i) => (
                 <div className="list-item" key={i}>
-                  <div style={{ flex: 1 }}><div className="strong">{humanize(m.kind.replace('booking_', ''))}</div>
-                    <div className="muted small">{m.status === 'sent' && m.sentAt ? `Sent ${fmtDateTime(m.sentAt)}` : m.status === 'skipped' ? 'Not sent: no email provider configured' : m.status === 'failed' ? `Failed after ${m.attempts} attempts: ${m.lastError ?? ''}` : `Queued${m.lastError ? ` (retrying: ${m.lastError})` : ''}`}</div></div>
+                  <div style={{ flex: 1 }}><div className="strong">{humanize(m.kind.replace('booking_', ''))} <span className="muted small">· to {m.recipient === 'owner' ? 'owner' : 'customer'}</span></div>
+                    <div className="muted small">{m.status === 'sent' && m.sentAt ? `Sent ${fmtDateTime(m.sentAt)}` : m.status === 'skipped' ? `Not sent: ${m.lastError ?? 'no email provider configured'}` : m.status === 'failed' ? `Failed after ${m.attempts} attempts: ${m.lastError ?? ''}` : `Queued${m.lastError ? ` (retrying: ${m.lastError})` : ''}`}</div></div>
                   <Badge status={m.status === 'sent' ? 'succeeded' : m.status === 'failed' ? 'failed' : m.status === 'skipped' ? 'inactive' : 'pending'} label={humanize(m.status)} />
                 </div>
               ))}</div>

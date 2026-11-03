@@ -21,7 +21,7 @@ export type Detail = {
   customer: { id: string; name: string; email: string; phone: string | null }; vehicle: { id: string; name: string };
   eventType: { id: string; title: string } | null; driver: { id: string; name: string } | null;
   pricing: { lines: { key: string; label: string; amountPence: number }[]; discountPence: number; serviceFeePence: number; vatPence: number; totalPence: number; depositDuePence: number; offer: { title: string; code: string | null } | null; deliveryEstimate?: { amountPence: number | null; label: string } | null };
-  emails: { kind: string; status: string; attempts: number; lastError: string | null; sentAt: string | null; createdAt: string }[];
+  emails: { kind: string; recipient?: 'customer' | 'owner'; status: string; attempts: number; lastError: string | null; sentAt: string | null; createdAt: string }[];
   events: { id: number; actorType: string; actorName: string | null; action: string; from: string | null; to: string | null; reason: string | null; createdAt: string; meta: any; bookingRef?: string }[];
   payments: Payment[];
   refunds: { id: string; paymentId: string; amountPence: number; reason: string | null; status: string; createdAt: string }[];
