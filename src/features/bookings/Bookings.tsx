@@ -1,7 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
-import { FiClipboard, FiPlus } from 'react-icons/fi';
+import { FiClipboard, FiFilter, FiPlus, FiSearch, FiX } from 'react-icons/fi';
 import { qs, useApi } from '../../lib/api';
-import { CheckField, SelectField, TextField } from '../../components/forms';
 import { useDebounced } from '../../lib/hooks';
 import { Pager } from '../../components/Pager';
 import { ErrorBox, Loading } from '../../components/feedback';
@@ -32,6 +31,7 @@ export default function Bookings({ initial }: { initial?: { status?: string } })
   const [extensionRequests, setExtensionRequests] = useState(false);
   const [offset, setOffset] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [more, setMore] = useState(false);
   const dq = useDebounced(q);
   const { data: fleet } = useApi<{ items: { id: string; make: string; model: string }[] }>('/vehicles?limit=200');
   const { data: ev } = useApi<{ items: { id: string; title: string }[] }>('/event-types');
@@ -43,6 +43,9 @@ export default function Bookings({ initial }: { initial?: { status?: string } })
     return acc;
   }, []);
   const reset = (fn: () => void) => { fn(); setOffset(0); };
+  const extraCount = [vehicleId, eventTypeId, from || to, extensionRequests].filter(Boolean).length;
+  const activeCount = extraCount + [q, status, paymentStatus].filter(Boolean).length;
+  const clearAll = () => reset(() => { setQ(''); setStatus(''); setPaymentStatus(''); setVehicleId(''); setEventTypeId(''); setFrom(''); setTo(''); setExtensionRequests(false); });
   // A new booking just came in: refresh the list so it shows at the top.
   useEffect(() => {
     window.addEventListener(NEW_BOOKINGS_EVENT, reload);
@@ -52,16 +55,53 @@ export default function Bookings({ initial }: { initial?: { status?: string } })
   return (
     <>
       <Panel title="Bookings" hint="Every booking, whatever its status" action={<button className="btn gold" onClick={() => setCreating(true)}><FiPlus /> New booking</button>}>
-        <div className="filters">
-          <TextField label="Search" value={q} onChange={(v) => reset(() => setQ(v))} placeholder="Reference, name or email" />
-          <SelectField label="Status" value={status} onChange={(v) => reset(() => setStatus(v))} options={[{ value: '', label: 'All' }, ...STATUSES.map((s) => ({ value: s, label: humanize(s) }))]} />
-          <SelectField label="Payment" value={paymentStatus} onChange={(v) => reset(() => setPaymentStatus(v))} options={[{ value: '', label: 'All' }, ...PAYMENT_STATUSES.map((s) => ({ value: s, label: s === 'paid' ? 'Paid in full' : humanize(s) }))]} />
-          <SelectField label="Car" value={vehicleId} onChange={(v) => reset(() => setVehicleId(v))} options={[{ value: '', label: 'All' }, ...(fleet?.items ?? []).map((v) => ({ value: v.id, label: `${v.make} ${v.model}` }))]} />
-          <SelectField label="Event" value={eventTypeId} onChange={(v) => reset(() => setEventTypeId(v))} options={[{ value: '', label: 'All' }, ...(ev?.items ?? []).map((e) => ({ value: e.id, label: e.title }))]} />
-          <TextField label="From" type="date" value={from} onChange={(v) => reset(() => setFrom(v))} />
-          <TextField label="To" type="date" value={to} onChange={(v) => reset(() => setTo(v))} />
-          <SelectField label="Sort" value={sort} onChange={setSort} options={[{ value: 'created_desc', label: 'Newest booked first' }, { value: 'start_desc', label: 'Event date, latest' }, { value: 'start_asc', label: 'Event date, soonest' }]} />
-          <CheckField label="Extension requests only" checked={extensionRequests} onChange={(v) => reset(() => setExtensionRequests(v))} />
+        <div className="bk-filters">
+          <div className="bk-row bk-main">
+            <label className="bk-search">
+              <FiSearch size={17} />
+              <input value={q} onChange={(e) => reset(() => setQ(e.target.value))} placeholder="Search reference, name, email" aria-label="Search bookings" />
+              {q ? <button type="button" className="bk-clear-x" aria-label="Clear search" onClick={() => reset(() => setQ(''))}><FiX size={15} /></button> : null}
+            </label>
+            <select className="input bk-select" value={status} onChange={(e) => reset(() => setStatus(e.target.value))} aria-label="Status">
+              <option value="">All statuses</option>{STATUSES.map((s) => <option key={s} value={s}>{humanize(s)}</option>)}
+            </select>
+            <select className="input bk-select" value={paymentStatus} onChange={(e) => reset(() => setPaymentStatus(e.target.value))} aria-label="Payment">
+              <option value="">All payments</option>{PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s === 'paid' ? 'Paid in full' : humanize(s)}</option>)}
+            </select>
+            <select className="input bk-select bk-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
+              <option value="created_desc">Newest booked first</option><option value="start_desc">Event date, latest</option><option value="start_asc">Event date, soonest</option>
+            </select>
+            <button type="button" className={'btn bk-more' + (more || extraCount ? ' on' : '')} onClick={() => setMore((m) => !m)} aria-expanded={more}>
+              <FiFilter size={15} /> More filters{extraCount ? <span className="bk-count">{extraCount}</span> : null}
+            </button>
+          </div>
+          {more ? (
+            <div className="bk-row bk-extra">
+              <div className="bk-field"><span>Car</span>
+                <select className="input" value={vehicleId} onChange={(e) => reset(() => setVehicleId(e.target.value))}>
+                  <option value="">Any car</option>{(fleet?.items ?? []).map((v) => <option key={v.id} value={v.id}>{v.make} {v.model}</option>)}
+                </select></div>
+              <div className="bk-field"><span>Event</span>
+                <select className="input" value={eventTypeId} onChange={(e) => reset(() => setEventTypeId(e.target.value))}>
+                  <option value="">Any event</option>{(ev?.items ?? []).map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
+                </select></div>
+              <div className="bk-field bk-dates"><span>Event date</span>
+                <div className="bk-range">
+                  <input className="input" type="date" value={from} max={to || undefined} onChange={(e) => reset(() => setFrom(e.target.value))} aria-label="From date" />
+                  <span className="muted">to</span>
+                  <input className="input" type="date" value={to} min={from || undefined} onChange={(e) => reset(() => setTo(e.target.value))} aria-label="To date" />
+                </div></div>
+              <label className={'bk-chip' + (extensionRequests ? ' on' : '')}>
+                <input type="checkbox" checked={extensionRequests} onChange={(e) => reset(() => setExtensionRequests(e.target.checked))} /> Extension requests only
+              </label>
+            </div>
+          ) : null}
+          {activeCount ? (
+            <div className="bk-summary">
+              <span className="muted small">{data ? `${data.total} order${data.total === 1 ? '' : 's'} match` : 'Filtering…'}</span>
+              <button type="button" className="link-btn small" onClick={clearAll}>Clear all filters</button>
+            </div>
+          ) : null}
         </div>
         <ErrorBox error={error} retry={reload} />
         {loading && !data ? <Loading /> : null}
