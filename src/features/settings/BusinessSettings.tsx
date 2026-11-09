@@ -11,7 +11,7 @@ import { useSettingsForm, EMAIL_RE, type S } from './settingsShared';
 
 const KEYS = [
   'company.name',
-  'company.email', 'company.supportEmail', 'company.supportPhone', 'company.altPhone', 'company.websiteUrl',
+  'company.email', 'company.supportEmail', 'company.supportPhone', 'company.altPhone', 'company.websiteUrl', 'company.privacyUrl',
   'company.addressLine1', 'company.addressLine2', 'company.city', 'company.region', 'company.postcode', 'company.country',
   'notifications.ownerEmails', 'company.dashboardUrl',
 ];
@@ -43,7 +43,7 @@ export function Business({ s, onSaved }: { s: S; onSaved: () => void }) {
   const errors: Record<string, string> = {};
   if (!str('company.name').trim()) errors['company.name'] = 'Enter the business name';
   for (const k of ['company.email', 'company.supportEmail']) if (str(k).trim() && !EMAIL_RE.test(str(k).trim())) errors[k] = 'Enter a valid email address';
-  for (const k of ['company.websiteUrl', 'company.dashboardUrl']) if (str(k).trim() && !URL_RE.test(str(k).trim())) errors[k] = 'Start the address with https://';
+  for (const k of ['company.websiteUrl', 'company.dashboardUrl', 'company.privacyUrl']) if (str(k).trim() && !URL_RE.test(str(k).trim())) errors[k] = 'Start the address with https://';
   if (str('notifications.ownerEmails').trim() && !str('notifications.ownerEmails').split(/[,;\s]+/).filter(Boolean).every((e) => EMAIL_RE.test(e))) errors['notifications.ownerEmails'] = 'Email addresses separated by commas';
   const err = (k: string) => (f.changed.includes(k) || f.error ? errors[k] : undefined);
   const invalid = Object.keys(errors).length > 0;
@@ -106,6 +106,7 @@ export function Business({ s, onSaved }: { s: S; onSaved: () => void }) {
             <TextField label="Contact number" value={str('company.supportPhone')} onChange={text('company.supportPhone')} placeholder="020 0000 0000" hint="Shown to customers" />
             <TextField label="Alternate number" value={str('company.altPhone')} onChange={text('company.altPhone')} placeholder="Optional" />
             <div className="full"><TextField label="Website" value={str('company.websiteUrl')} onChange={text('company.websiteUrl')} error={err('company.websiteUrl')} placeholder="https://yourcompany.com" hint="Linked from the buttons in customer emails" /></div>
+            <div className="full"><TextField label="Privacy policy link" value={str('company.privacyUrl')} onChange={text('company.privacyUrl')} error={err('company.privacyUrl')} placeholder="https://yourcompany.com/privacy" hint="Shown in the customer app. Google Play and the App Store require a published privacy policy." /></div>
           </div>
         </Card>
 
