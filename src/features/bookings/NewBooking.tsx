@@ -130,7 +130,13 @@ function VehicleItem({ it, n, count, fleet, events, extras, today, maxDate, buff
       <div className="form-grid">
         <TextField label="Date *" type="date" value={it.date} onChange={(v) => onChange({ date: v })} min={today} max={maxDate} error={it.date < today ? 'Choose today or a later date' : undefined} />
         <TextField label="Start time *" type="time" value={it.time} onChange={(v) => onChange({ time: v })} hint={`On the hour. ${buffer} minutes are kept free before and after.`} />
-        <NumberField label="Hours *" value={it.hours} onChange={(v) => onChange({ hours: v })} min={veh?.min_hours ?? 1} max={veh?.max_hours} />
+        <SelectField label="Book by" value={(it.hours ?? 0) >= 24 ? 'day' : 'hour'} onChange={(v) => onChange({ hours: v === 'day' ? 24 : (veh?.min_hours ?? 1) })}
+          options={[{ value: 'hour', label: 'The hour' }, { value: 'day', label: 'The day (24 hours)' }]} />
+        {(it.hours ?? 0) >= 24 ? (
+          <NumberField label="Days *" value={(it.hours ?? 24) / 24} onChange={(v) => onChange({ hours: v ? v * 24 : null })} min={1} max={60} hint="Ends at the same time on the last day" />
+        ) : (
+          <NumberField label="Hours *" value={it.hours} onChange={(v) => onChange({ hours: v })} min={veh?.min_hours ?? 1} max={veh?.max_hours} />
+        )}
         <SelectField label="Driver *" value={driver} onChange={(v) => onChange({ driverOption: v })} disabled={choices.length < 2}
           options={choices.length === 1 ? choices : [{ value: '', label: it.vehicleId ? 'Choose' : 'Choose a car first' }, ...choices]} />
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { FiPlus, FiTruck } from 'react-icons/fi';
 import { qs, useApi } from '../../lib/api';
 import { SelectField, TextField } from '../../components/forms';
@@ -6,23 +6,51 @@ import { useDebounced } from '../../lib/hooks';
 import { Pager } from '../../components/Pager';
 import { ErrorBox, Loading } from '../../components/feedback';
 import { Badge, Empty, Panel } from '../../components/ui';
-import { gbp } from '../../lib/format';
+import { fmtDate, fmtTime, gbp } from '../../lib/format';
 import { go } from '../../lib/nav';
 import { DeleteDialog, RowActions } from '../../components/RowActions';
 
 export type VehicleRow = {
   id: string; fleet_ref: string | null; make: string; model: string; year: number; category: string; city: string; price_per_hour_pence: number;
   operational_status: string; published: boolean; images: { id: string; url: string; isCover: boolean }[];
+  booking_now?: FleetBooking | null; next_booking?: FleetBooking | null; upcoming_bookings?: number;
 };
+type FleetBooking = { id: string; ref: string; status: string; startAt: string; endAt: string; customer: string };
+
+/** Booked right now (until when, and by whom), the next booking, or available. Clicking opens the booking. */
+function BookingCell({ v }: { v: VehicleRow }) {
+  const open = (b: FleetBooking) => (e: MouseEvent) => { e.stopPropagation(); go('bookings/' + b.id); };
+  const now = v.booking_now, next = v.next_booking;
+  const more = (v.upcoming_bookings ?? 0) - (now ? 1 : 0) - (next ? 1 : 0);
+  if (!now && !next) return <span className="badge good">Available</span>;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+      {now ? (
+        <button type="button" className="link-btn" onClick={open(now)} title={`Open ${now.ref}`} style={{ textAlign: 'left' }}>
+          <span className="badge warn">Booked now</span>
+          <div className="cell-sub">{now.ref} · {now.customer} · until {fmtTime(now.endAt)}{fmtDate(now.endAt) !== fmtDate(new Date().toISOString()) ? ` ${fmtDate(now.endAt, { day: 'numeric', month: 'short' })}` : ''}</div>
+        </button>
+      ) : null}
+      {next ? (
+        <button type="button" className="link-btn" onClick={open(next)} title={`Open ${next.ref}`} style={{ textAlign: 'left' }}>
+          {now ? null : <span className="badge info">Booked</span>}
+          <div className="cell-sub">Next: {fmtDate(next.startAt, { weekday: 'short', day: 'numeric', month: 'short' })} {fmtTime(next.startAt)}–{fmtTime(next.endAt)} · {next.ref}</div>
+        </button>
+      ) : null}
+      {more > 0 ? <div className="cell-sub">+{more} more upcoming</div> : null}
+    </div>
+  );
+}
 
 export default function Vehicles() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [published, setPublished] = useState('');
+  const [booking, setBooking] = useState('');
   const [offset, setOffset] = useState(0);
   const dq = useDebounced(q);
   const [deleting, setDeleting] = useState<VehicleRow | null>(null);
-  const { data, error, loading, reload } = useApi<{ items: VehicleRow[]; total: number }>('/vehicles' + qs({ q: dq, status, published, limit: 25, offset }));
+  const { data, error, loading, reload } = useApi<{ items: VehicleRow[]; total: number }>('/vehicles' + qs({ q: dq, status, published, booking, limit: 25, offset }));
 
   return (
     <Panel title="Fleet" hint="Every car the company offers" action={<button className="btn gold" onClick={() => go('vehicles/new')}><FiPlus /> Add vehicle</button>}>
@@ -30,6 +58,7 @@ export default function Vehicles() {
         <TextField label="Search" value={q} onChange={(v) => { setQ(v); setOffset(0); }} placeholder="Make, model or fleet ID" />
         <SelectField label="Status" value={status} onChange={(v) => { setStatus(v); setOffset(0); }} options={[{ value: '', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }, { value: 'maintenance', label: 'Maintenance' }]} />
         <SelectField label="Listing" value={published} onChange={(v) => { setPublished(v); setOffset(0); }} options={[{ value: '', label: 'All' }, { value: 'true', label: 'Published' }, { value: 'false', label: 'Unpublished' }]} />
+        <SelectField label="Bookings" value={booking} onChange={(v) => { setBooking(v); setOffset(0); }} options={[{ value: '', label: 'All' }, { value: 'now', label: 'Booked now' }, { value: 'upcoming', label: 'Booked (now or upcoming)' }, { value: 'none', label: 'Available (no bookings)' }]} />
       </div>
       <ErrorBox error={error} retry={reload} />
       {loading && !data ? <Loading /> : null}
@@ -37,7 +66,7 @@ export default function Vehicles() {
       {data?.items.length ? (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Car</th><th>Fleet ID</th><th>City</th><th className="num">Base rate</th><th>Status</th><th>Listing</th><th className="actions-cell" /></tr></thead>
+            <thead><tr><th>Car</th><th>Fleet ID</th><th>City</th><th className="num">Base rate</th><th>Bookings</th><th>Status</th><th>Listing</th><th className="actions-cell" /></tr></thead>
             <tbody>
               {data.items.map((v) => {
                 const img = v.images.find((i) => i.isCover) ?? v.images[0];
@@ -52,6 +81,7 @@ export default function Vehicles() {
                     <td className="dim">{v.fleet_ref ?? '—'}</td>
                     <td>{v.city}</td>
                     <td className="num">{gbp(v.price_per_hour_pence)}/h</td>
+                    <td><BookingCell v={v} /></td>
                     <td><Badge status={v.operational_status} /></td>
                     <td><Badge status={v.published ? 'published' : 'draft'} label={v.published ? 'Published' : 'Not published'} /></td>
                     <td className="actions-cell"><RowActions name={`${v.make} ${v.model}`} onEdit={() => go('vehicles/' + v.id)} onDelete={() => setDeleting(v)} /></td>

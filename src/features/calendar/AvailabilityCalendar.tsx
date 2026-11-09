@@ -99,7 +99,7 @@ export default function AvailabilityCalendar({ vehicleId, onPickDay }: { vehicle
       <div className="legend">
         <span><i style={{ background: 'var(--gold-soft)' }} />Booked</span>
         <span><i style={{ background: 'repeating-linear-gradient(135deg, var(--line-strong) 0 4px, transparent 4px 8px)' }} />Blocked / maintenance</span>
-        <span><i />Free (click to select)</span>
+        <span><i />Available (click to select)</span>
       </div>
       <ErrorBox error={error} retry={reload} />
       {loading && !data ? <Loading /> : null}

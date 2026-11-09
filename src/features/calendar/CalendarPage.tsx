@@ -71,7 +71,7 @@ function Overview({ cars, onPick }: { cars: Veh[]; onPick: (id: string) => void 
               {days.map((d) => {
                 const n = count(cals[c.id], d);
                 return <td key={d} className="num"><button className="link-btn" onClick={() => onPick(c.id)} aria-label={`${c.make} ${c.model} on ${d}`}>
-                  {n.bookings ? <span className="badge warn">{n.bookings}</span> : null}{n.blocks ? <span className="badge mute" style={{ marginLeft: 4 }}>blocked</span> : null}{!n.bookings && !n.blocks ? <span className="muted">free</span> : null}
+                  {n.bookings ? <span className="badge warn">{n.bookings}</span> : null}{n.blocks ? <span className="badge mute" style={{ marginLeft: 4 }}>blocked</span> : null}{!n.bookings && !n.blocks ? <span className="muted">available</span> : null}
                 </button></td>;
               })}
             </tr>

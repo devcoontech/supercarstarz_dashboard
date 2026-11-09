@@ -15,7 +15,7 @@ import { Drawer, Empty, Switch } from '../../../components/ui';
  * an extra-hour rate after a package, a per-mile rate for pick-up and drop-off trips, and special-date changes.
  */
 
-export type PriceKind = 'hourly' | 'package' | 'extra_hour' | 'per_mile' | 'special_date';
+export type PriceKind = 'hourly' | 'package' | 'extra_hour' | 'per_mile' | 'special_date' | 'daily';
 export type Price = {
   id: string; eventTypeId: string | null; kind: PriceKind; label: string | null; hours: number | null; amountPence: number | null;
   minAmountPence: number | null; multiplierBp: number | null; startsOn: string | null; endsOn: string | null; active: boolean;
@@ -28,6 +28,7 @@ export const PRICE_TYPES: { value: PriceKind; label: string; help: string }[] = 
   { value: 'hourly', label: 'Per hour', help: 'A different hourly rate, usually for one event' },
   { value: 'package', label: 'Package (fixed hours)', help: 'A set price for a block of hours, e.g. half day or full day' },
   { value: 'extra_hour', label: 'Extra hour', help: 'Charged for each hour beyond a package' },
+  { value: 'daily', label: 'Per day', help: 'Price for each whole day (24 hours) when a customer books by the day. Without it, a day is charged as 24 hours at the hourly rate.' },
   { value: 'per_mile', label: 'Per mile', help: 'For pick-up and drop-off trips priced by distance' },
   { value: 'special_date', label: 'Special dates', help: 'Raise or lower the price between two dates' },
 ];
@@ -35,6 +36,7 @@ export const priceTypeLabel = (k: PriceKind) => PRICE_TYPES.find((t) => t.value 
 
 export const describePrice = (r: Pick<Price, 'kind' | 'amountPence' | 'minAmountPence' | 'hours' | 'multiplierBp' | 'startsOn' | 'endsOn'>) =>
   r.kind === 'hourly' ? `${gbp(r.amountPence)} per hour`
+    : r.kind === 'daily' ? `${gbp(r.amountPence)} per day (24 hours)`
     : r.kind === 'extra_hour' ? `${gbp(r.amountPence)} per extra hour`
     : r.kind === 'per_mile' ? `${gbp(r.amountPence)} per mile${r.minAmountPence ? `, minimum ${gbp(r.minAmountPence)}` : ''}`
     : r.kind === 'package' ? `${r.hours} hours for ${gbp(r.amountPence)}`
@@ -143,7 +145,7 @@ export function PriceForm({ price, events, onClose, onSubmit, done = 'Price save
         options={[{ value: '', label: 'Every event' }, ...events.map((ev) => ({ value: ev.id, label: ev.name }))]} />
       <TextField label="Name shown to customers (optional)" value={label} onChange={setLabel} placeholder={kind === 'package' ? 'e.g. Full day' : kind === 'special_date' ? 'e.g. Christmas week' : ''} />
       {kind === 'package' ? <NumberField label="Hours in the package *" value={hours} onChange={setHours} min={1} error={e('hours')} /> : null}
-      {kind !== 'special_date' ? <MoneyField label={kind === 'package' ? 'Package price *' : kind === 'per_mile' ? 'Price per mile *' : kind === 'extra_hour' ? 'Price per extra hour *' : 'Price per hour *'} value={amount} onChange={setAmount} error={e('amount')} /> : null}
+      {kind !== 'special_date' ? <MoneyField label={kind === 'package' ? 'Package price *' : kind === 'per_mile' ? 'Price per mile *' : kind === 'extra_hour' ? 'Price per extra hour *' : kind === 'daily' ? 'Price per day *' : 'Price per hour *'} value={amount} onChange={setAmount} error={e('amount')} /> : null}
       {kind === 'per_mile' ? <MoneyField label="Minimum charge (optional)" value={minimum} onChange={setMinimum} hint="The least a trip costs, however short" /> : null}
       {kind === 'special_date' ? (
         <>

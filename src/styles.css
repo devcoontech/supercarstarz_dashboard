@@ -307,6 +307,7 @@ select.input option { background: var(--panel); }
 .login-art .tagline { position: relative; font-family: var(--display); font-style: italic; font-weight: 800; font-size: 40px; line-height: 1.05; color: var(--text); margin: 0 0 14px; }
 .login-panel { display: flex; flex-direction: column; justify-content: center; padding: 56px; gap: 22px; max-width: 520px; width: 100%; margin: 0 auto; }
 .login-panel h1 { font-family: var(--display); font-style: italic; font-weight: 800; font-size: 34px; margin: 0; }
+.login-wordmark { width: 220px; max-width: 60%; height: auto; }
 .portal-choice {
   display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: var(--r-lg); cursor: pointer;
   background: var(--glass); border: 1px solid var(--line-strong); text-align: left; width: 100%;
@@ -335,9 +336,15 @@ select.input option { background: var(--panel); }
   .search { display: none; }
   .content { padding: 20px 16px 48px; }
   .g-3, .g-2 { grid-template-columns: 1fr; }
-  .login { grid-template-columns: 1fr; }
-  .login-art { min-height: 340px; padding: 28px; }
-  .login-panel { padding: 28px 16px; }
+  /* Small screens: the art becomes a compact logo banner above the form. The
+     tagline and blurb are hidden because they sat on top of the logo. */
+  .login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; min-height: 100dvh; }
+  .login-art { min-height: 0; padding: 28px 20px; align-items: center; justify-content: center; }
+  .login-art img { position: static; transform: none; width: min(340px, 78%); height: auto; }
+  .login-art .tagline, .login-art p { display: none; }
+  .login-panel { padding: 28px 20px 40px; justify-content: flex-start; gap: 18px; }
+  .login-panel h1 { font-size: 28px; }
+  .login-wordmark { width: 180px; }
 }
 @media (max-width: 560px) {
   .g-4 { grid-template-columns: 1fr; }

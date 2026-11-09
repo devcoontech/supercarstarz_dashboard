@@ -28,7 +28,7 @@ export default function Login() {
       </div>
       <form className="login-panel" onSubmit={submit} noValidate>
         <div className="row between">
-          <img src="/wordmark.png" alt="Supercarstars.com" style={{ width: 220 }} className="login-wordmark" />
+          <img src="/wordmark.png" alt="Supercarstars.com" className="login-wordmark" />
           <button type="button" className="icon-btn" onClick={toggle} aria-label="Toggle theme">{theme === 'dark' ? <FiSun size={18} /> : <FiMoon size={18} />}</button>
         </div>
         <div>
