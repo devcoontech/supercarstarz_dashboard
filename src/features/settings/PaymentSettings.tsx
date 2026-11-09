@@ -15,14 +15,13 @@ export function Payments({ s, secrets, onSaved }: { s: S; secrets: Payload['secr
   const [whsec, setWhsec] = useState('');
   const [test, setTest] = useState<{ liveMode: boolean; currencies: string[] } | null>(null);
   const { run, busy, error } = useAction();
-  const fee = (f.v['pricing.serviceFeeBp'] as number) / 100;
   const dep = (f.v['payment.depositPercentBp'] as number) / 100;
   const webhook = `${API_URL}/api/webhooks/stripe`;
   const sk = secrets['stripe.secretKey'], wh = secrets['stripe.webhookSecret'];
   useEffect(() => setTest(null), [sk.hint]);
 
   const saveAll = () => run(async () => {
-    const settings = Object.fromEntries(['pricing.serviceFeeBp', 'payment.mode', 'payment.depositPercentBp', 'stripe.publishableKey'].filter((k) => f.changed.includes(k)).map((k) => [k, f.v[k]]));
+    const settings = Object.fromEntries(['payment.mode', 'payment.depositPercentBp', 'stripe.publishableKey'].filter((k) => f.changed.includes(k)).map((k) => [k, f.v[k]]));
     const sec: Record<string, string> = {};
     if (secretKey.trim()) sec.stripeSecretKey = secretKey.trim();
     if (whsec.trim()) sec.stripeWebhookSecret = whsec.trim();
@@ -33,9 +32,8 @@ export function Payments({ s, secrets, onSaved }: { s: S; secrets: Payload['secr
 
   return (
     <>
-      <Panel title="Charges and payment" hint="Percentages are applied on the server when a booking is priced.">
+      <Panel title="Charges and payment" hint="No service fee is charged. Tax is only added when it is switched on under Tax.">
         <div className="form-grid">
-          <NumberField label="Service fee (%)" value={fee} onChange={(v) => f.set('pricing.serviceFeeBp', Math.round((v ?? 0) * 100))} min={0} max={100} hint="Added to the customer total" />
           <SelectField label="Customer pays" value={f.v['payment.mode'] as string} onChange={(v) => f.set('payment.mode', v)} options={[{ value: 'full', label: 'Full amount upfront' }, { value: 'deposit', label: 'A deposit upfront' }]} />
           <NumberField label="Default deposit (%)" value={dep} onChange={(v) => f.set('payment.depositPercentBp', Math.round((v ?? 0) * 100))} min={0} max={100} hint="Used when a car has no fixed deposit" />
         </div>
