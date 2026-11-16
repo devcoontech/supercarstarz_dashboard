@@ -1,3 +1,5 @@
+import type { SelfDrive } from './SelfDrivePanel';
+
 /** Shapes returned by GET /admin/bookings/:id, shared by the booking page and its dialogs. */
 type Finance = {
   currency: string; quotedTotalPence: number; confirmedChargesPence: number; finalTotalPence: number; depositRequiredPence: number; depositMode: boolean; depositPaid: boolean;
@@ -29,6 +31,8 @@ export type Detail = {
   cancellationPolicy: { percent: number; refundPence: number; hoursAhead: number };
   finance: Finance; charges: Charge[]; invoices: Doc[]; defaultDeliveryRatePence: number;
   order: OrderInfo; extensions: Extension[];
+  /** The self-drive driver's details and licence, when any car in the order is booked without a driver. */
+  selfDrive: SelfDrive | null;
   addons: { id: string; name: string; pricingType: string; unitPricePence: number; quantity: number; hours: number | null; totalPence: number }[];
 };
 export type Pt = { lat: number; lng: number };

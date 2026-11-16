@@ -14,6 +14,7 @@ import { AddVehicle, StatusDialog, ChangeVehicle, AssignDriver } from './dialogs
 import { DeliveryCharge, Adjustment } from './dialogs/ChargeDialogs';
 import { ManualPay, PaymentStatus, Refund } from './dialogs/PaymentDialogs';
 import { Extend, DecideExtension } from './dialogs/ExtensionDialogs';
+import { SelfDrivePanel } from './SelfDrivePanel';
 
 /** Status values are humanised; reschedule times are formatted; names and amounts pass through. */
 const shown = (action: string, v: string) => (action === 'rescheduled' || action === 'extended' ? fmtDateTime(v)
@@ -136,6 +137,9 @@ export default function BookingDetail({ id }: { id: string }) {
           <span className="row"><button className="btn sm gold" onClick={() => setDialog({ t: 'decideExt', ext: x, approve: true })}>Approve</button><button className="btn sm danger" onClick={() => setDialog({ t: 'decideExt', ext: x, approve: false })}>Decline</button></span>
         </div>
       ))}
+      {b.selfDrive?.status === 'pending' && !closed ? <div className="note"><b>Self-drive licence check waiting.</b> Review {b.selfDrive.fullName}'s details and licence photos in "Self-drive driver" below before the car is handed over.</div> : null}
+      {b.selfDrive?.status === 'rejected' && !closed ? <div className="note"><b>Self-drive driver turned down.</b> Change the booking to one with a driver, or cancel and refund it.</div> : null}
+      {b.driverOption === 'self_drive' && !b.selfDrive && !closed && !b.pickupAddress ? <div className="note">Self-drive booking with no driver details on file (made by staff or before details were required). Check the driver's licence in person at handover.</div> : null}
       {delivery?.status === 'pending' && !closed ? <div className="note">Delivery charge not confirmed yet. The customer sees an estimate{delivery.amountPence ? ` of ${gbp(delivery.amountPence)}` : ''}; it is not payable until you confirm it below.</div> : null}
 
       <div className="grid g-main">
@@ -150,6 +154,7 @@ export default function BookingDetail({ id }: { id: string }) {
               <Field label="Driver">{b.driver
                 ? <>{b.driver.name}{b.driverAssignments.length > 1 ? <div className="muted small">Previously: {b.driverAssignments.filter((a) => !a.active).map((a) => a.driverName).join(', ')}</div> : null}</>
                 : <span className={b.driverOption === 'with_driver' || b.chauffeur ? '' : 'muted'}>{b.driverOption === 'with_driver' || b.chauffeur ? 'Needed, not assigned yet' : 'Self-drive'}</span>}
+                {!b.driver && b.driverOption === 'self_drive' && b.selfDrive ? <div className="row wrap" style={{ gap: 6, marginTop: 4 }}><span className="small">{b.selfDrive.fullName}</span><Badge status={b.selfDrive.status} label={b.selfDrive.status === 'pending' ? 'Licence check waiting' : b.selfDrive.status === 'approved' ? 'Licence approved' : 'Turned down'} /></div> : null}
                 {['confirmed', 'driver_assigned'].includes(s) && (b.driverOption === 'with_driver' || b.chauffeur || b.driver) ? (
                   <div className="row wrap" style={{ gap: 8, marginTop: 8 }}>
                     <button className="btn sm" onClick={() => setDialog({ t: 'driver' })}>{b.driver ? 'Change driver' : 'Assign driver'}</button>
@@ -171,6 +176,8 @@ export default function BookingDetail({ id }: { id: string }) {
               </span></Field> : null}
             </div>
           </Panel>
+
+          {b.selfDrive ? <SelfDrivePanel sd={b.selfDrive} startAt={b.startAt} endAt={b.endAt} onChanged={reload} /> : null}
 
           {b.order.items.length > 1 ? (
             <Panel title={`Order ${b.order.ref}`} hint="Vehicles booked and paid for together. Each has its own price, times and status.">

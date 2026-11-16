@@ -72,13 +72,13 @@ function Portal() {
     { key: 'reports', label: 'Reports', icon: FiBarChart2 },
     { key: 'settings', label: 'Settings', icon: FiSettings },
   ];
-  const [title, sub] = page === 'vehicles' && id === 'new' ? ['Add a vehicle', 'A few short steps, then publish'] : page === 'vehicles' && id ? ['Vehicle', 'Edit details, photos, events, pricing and availability'] : page === 'bookings' && id ? ['Booking', 'Details, payments, driver and history'] : titles[page] ?? titles.overview;
+  const [title, sub] = page === 'vehicles' && id === 'new' ? ['Add a vehicle', 'A few short steps, then publish'] : page === 'vehicles' && id ? ['Vehicle', 'Edit details, photos, events, pricing and availability'] : page === 'bookings' && id && id !== 'licence-checks' ? ['Booking', 'Details, payments, driver and history'] : titles[page] ?? titles.overview;
 
   return (
     <Shell portal="Company admin" nav={nav} active={nav.some((n) => n.key === page) ? page : 'overview'} onNavigate={(k) => go(k)} title={title} sub={sub}
       user={{ name: staff!.name, role: staff!.role === 'owner' ? 'Company owner' : staff!.role.replaceAll('_', ' ') }} onSignOut={signOut} actions={<BookingAlerts />}>
       {page === 'overview' ? <Overview /> : null}
-      {page === 'bookings' ? (id ? <BookingDetail key={id} id={id} /> : <Bookings />) : null}
+      {page === 'bookings' ? (id === 'licence-checks' ? <Bookings key={id} initial={{ selfDrive: 'pending' }} /> : id ? <BookingDetail key={id} id={id} /> : <Bookings key="all" />) : null}
       {page === 'vehicles' ? (id ? <VehicleEditor key={id} id={id} /> : <Vehicles />) : null}
       {page === 'calendar' ? <CalendarPage /> : null}
       {page === 'events' ? <Events /> : null}

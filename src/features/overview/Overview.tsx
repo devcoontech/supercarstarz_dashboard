@@ -13,7 +13,7 @@ type Dash = {
   money: { grossBookingValuePence: number; collectedPence: number; refundedPence: number; netCollectedPence: number; outstandingPence: number };
   fleet: { total: number; active: number; inactive: number; published: number; availableNow: number };
   bookings: { pending: number; confirmed: number; ongoing: number; completed: number; cancelled: number };
-  attention: { driverAssignmentsNeeded: number };
+  attention: { driverAssignmentsNeeded: number; selfDriveChecks: number };
   upcoming: { id: string; ref: string; startAt: string; status: string; vehicle: string; customer: string }[];
   perDay: { day: string; bookings: number; collectedPence: number }[];
   utilization: { id: string; name: string; bookedHours: number; percent: number }[];
@@ -55,6 +55,12 @@ export default function Overview() {
       {loading && !data ? <Loading /> : null}
       {data ? (
         <>
+          {data.attention.selfDriveChecks ? (
+            <div className="note row between wrap">
+              <span><b>{data.attention.selfDriveChecks} self-drive licence check{data.attention.selfDriveChecks === 1 ? '' : 's'} waiting.</b> Review the driver's details and licence photos before handover.</span>
+              <button className="btn sm gold" onClick={() => go('bookings/licence-checks')}>Review now</button>
+            </div>
+          ) : null}
           <div className="grid g-4">
             <Stat feature icon={FiDollarSign} label="Collected" value={gbp(data.money.collectedPence)} delta="Payments received in period" />
             <Stat icon={FiRotateCcw} label="Refunded" value={gbp(data.money.refundedPence)} delta={`Net collected ${gbp(data.money.netCollectedPence)}`} />

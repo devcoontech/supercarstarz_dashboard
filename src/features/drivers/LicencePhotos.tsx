@@ -13,7 +13,7 @@ export type LicenceImage = { id: string; side: Side; createdAt: string; uploaded
 const SIDES: { side: Side; label: string }[] = [{ side: 'front', label: 'Front' }, { side: 'back', label: 'Back' }];
 
 /** Loads a licence photo through the authenticated API (the files are private) and frees it when unmounted. */
-function useImageUrl(path: string | null) {
+export function useImageUrl(path: string | null) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -26,10 +26,10 @@ function useImageUrl(path: string | null) {
   return { url, failed };
 }
 
-function LicenceThumb({ src, label, onOpen }: { src: string | null; label: string; onOpen?: () => void }) {
+export function LicenceThumb({ src, label, onOpen }: { src: string | null; label: string; onOpen?: () => void }) {
   return (
     <button type="button" className="btn" onClick={onOpen} disabled={!src || !onOpen} aria-label={`Open ${label}`}
-      style={{ padding: 0, width: '100%', aspectRatio: '1.586', overflow: 'hidden', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      style={{ padding: 0, width: '100%', height: 'auto', aspectRatio: '1.586', overflow: 'hidden', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       {src ? <img src={src} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span className="muted small"><FiCreditCard /> No photo</span>}
     </button>
   );

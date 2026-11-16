@@ -7,8 +7,10 @@ import { useSettingsForm, type S } from './settingsShared';
 export function BookingRules({ s, onSaved }: { s: S; onSaved: () => void }) {
   const f = useSettingsForm(s, onSaved);
   const n = (k: string) => f.v[k] as number;
-  const keys = ['booking.openHour', 'booking.closeHour', 'booking.minLeadHours', 'booking.requireApproval', 'booking.holdMinutes', 'booking.cancellationFreeHours', 'booking.cancellationLateRefundPercent', 'driver.bufferMinutes', 'booking.bufferMinutes', 'booking.maxAdvanceDays', 'booking.maxVehiclesPerOrder', 'booking.allowExtensions', 'delivery.showroomFeePence'];
-  const bad = n('booking.closeHour') <= n('booking.openHour') || n('booking.closeHour') > 24 || n('booking.cancellationLateRefundPercent') > 100 || n('booking.maxAdvanceDays') < 1 || n('booking.bufferMinutes') > 1440;
+  const keys = ['booking.openHour', 'booking.closeHour', 'booking.minLeadHours', 'booking.requireApproval', 'booking.holdMinutes', 'booking.cancellationFreeHours', 'booking.cancellationLateRefundPercent', 'driver.bufferMinutes', 'booking.bufferMinutes', 'booking.maxAdvanceDays', 'booking.maxVehiclesPerOrder', 'booking.allowExtensions', 'delivery.showroomFeePence', 'booking.maxDays', 'booking.allowDailyBookings',
+    'selfDrive.detailsRequired', 'selfDrive.minAge', 'selfDrive.minLicenceYears', 'selfDrive.maxPenaltyPoints'];
+  const bad = n('booking.closeHour') <= n('booking.openHour') || n('booking.closeHour') > 24 || n('booking.cancellationLateRefundPercent') > 100 || n('booking.maxAdvanceDays') < 1 || n('booking.bufferMinutes') > 1440
+    || n('selfDrive.minAge') < 17 || n('selfDrive.minAge') > 99 || n('selfDrive.minLicenceYears') > 30 || n('selfDrive.maxPenaltyPoints') > 20;
   return (
     <>
       <Panel title="Booking rules" hint={`Times are in ${s['booking.timezone']}.`}>
@@ -27,6 +29,14 @@ export function BookingRules({ s, onSaved }: { s: S; onSaved: () => void }) {
           <div className="full"><ToggleField label="Customers can book by the day" checked={f.v['booking.allowDailyBookings'] as boolean} onChange={(c) => f.set('booking.allowDailyBookings', c)} onText="On" offText="Off" hint="As well as by the hour. Set a car's daily price under Fleet > the car > Prices > Per day; without one, each day is charged as 24 hours at the hourly rate." /></div>
           <div className="full"><ToggleField label="Customers can extend bookings in the app" checked={f.v['booking.allowExtensions'] as boolean} onChange={(c) => f.set('booking.allowExtensions', c)} onText="On" offText="Off" hint="Only when the car is free afterwards. Otherwise they can ask you, and you approve or decline." /></div>
           <div className="full"><ToggleField label="Require approval for new bookings" checked={f.v['booking.requireApproval'] as boolean} onChange={(c) => f.set('booking.requireApproval', c)} onText="On" offText="Off" hint="On: bookings start as Pending until you approve. Off: they go straight to payment." /></div>
+        </div>
+      </Panel>
+      <Panel title="Self-drive" hint="Customers booking a car without a driver give the driver's details, home address and driving licence with a photo. You review them on the booking before handover.">
+        <div className="form-grid">
+          <NumberField label="Minimum driver age" value={n('selfDrive.minAge')} onChange={(v) => f.set('selfDrive.minAge', v ?? 25)} min={17} max={99} hint="On the day of the booking" error={n('selfDrive.minAge') < 17 ? 'At least 17' : undefined} />
+          <NumberField label="Full licence held for at least (years)" value={n('selfDrive.minLicenceYears')} onChange={(v) => f.set('selfDrive.minLicenceYears', v ?? 0)} min={0} max={30} />
+          <NumberField label="Most penalty points accepted" value={n('selfDrive.maxPenaltyPoints')} onChange={(v) => f.set('selfDrive.maxPenaltyPoints', v ?? 0)} min={0} max={20} />
+          <div className="full"><ToggleField label="Require driver details and licence photo" checked={f.v['selfDrive.detailsRequired'] as boolean} onChange={(c) => f.set('selfDrive.detailsRequired', c)} onText="On" offText="Off" hint="On: the app asks for them before a self-drive booking can be sent. Staff bookings never need them." /></div>
         </div>
       </Panel>
       <Panel title="Delivery and collection" hint="Delivery is priced per booking: staff work out the charge and add it on the booking page, and the customer is emailed the new total.">

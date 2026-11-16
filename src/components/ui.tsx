@@ -58,7 +58,7 @@ export function Stat({
 }
 
 const tone: Record<string, string> = {
-  confirmed: 'good', driver_assigned: 'good', succeeded: 'good', paid: 'good', active: 'good', published: 'good', employee: 'mute', contractor: 'mute',
+  confirmed: 'good', approved: 'good', driver_assigned: 'good', succeeded: 'good', paid: 'good', active: 'good', published: 'good', employee: 'mute', contractor: 'mute',
   completed: 'mute', inactive: 'bad', draft: 'mute', unpaid: 'mute', archived: 'mute',
   pending: 'warn', awaiting_payment: 'warn', partially_paid: 'warn', partially_refunded: 'warn', cancellation_requested: 'warn', maintenance: 'warn',
   in_progress: 'info', refunded: 'info', not_dispatched: 'mute', dispatched: 'info', en_route: 'info', arrived: 'info', service_started: 'info', service_complete: 'good',
